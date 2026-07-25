@@ -30,6 +30,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: foundry-rs/foundry-toolchain@v1
       - run: npm ci
+      - run: forge install foundry-rs/forge-std --no-git
       - run: forge fmt --check
       - run: forge build
       - run: forge test -vvv
