@@ -1,6 +1,6 @@
 # dependencies
 node_modules/
-lib/
+lib/forge-std/
 
 # Next.js
 .next/
@@ -31,3 +31,4 @@ coverage/
 lcov.info
 
 .vercel
+.playwright-cli/
