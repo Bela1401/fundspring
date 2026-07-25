@@ -29,3 +29,5 @@ Thumbs.db
 *.tsbuildinfo
 coverage/
 lcov.info
+
+.vercel

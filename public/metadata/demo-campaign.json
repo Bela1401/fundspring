@@ -1,0 +1,7 @@
+{
+  "name": "FundSpring Community Launch",
+  "description": "A live Arc Testnet campaign demonstrating all-or-nothing USDC crowdfunding, atomic approve-and-contribute batching, and transaction memo reconciliation.",
+  "external_url": "https://fundspring.vercel.app/campaigns/0x8aa797faa44265A5c0f7921748b8D891C617515e",
+  "network": "Arc Testnet",
+  "chain_id": 5042002
+}

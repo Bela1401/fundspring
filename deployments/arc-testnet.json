@@ -1,12 +1,47 @@
 {
-  "status": "pending",
+  "status": "deployed",
   "network": "Arc Testnet",
   "chainId": 5042002,
-  "deployer": null,
-  "deploymentBlock": null,
+  "deployer": "0x4879A69d08dc2fFE9D63000B74BdEB5F22F2eCF7",
+  "deploymentBlock": 53581483,
   "contracts": {
-    "CampaignFactory": null,
-    "FundingCampaigns": []
+    "CampaignFactory": {
+      "address": "0x95EfD270DCf7349E564d23646AedB3b0c609Cf27",
+      "purpose": "Deploys and indexes FundSpring campaign contracts.",
+      "deploymentTransaction": "0x0a7b3ee27fac39a1551d48da82af34a0555deeb97ce9c959b503cb9d2e4d772d",
+      "deploymentBlock": 53581483,
+      "constructorParameters": {
+        "usdc": "0x3600000000000000000000000000000000000000"
+      },
+      "verification": {
+        "status": "pending",
+        "reason": "Arc Testnet Explorer Blockscout API returned HTTP 503 on 2026-07-25.",
+        "sourceUrl": null
+      }
+    },
+    "FundingCampaigns": [
+      {
+        "address": "0x8aa797faa44265A5c0f7921748b8D891C617515e",
+        "purpose": "All-or-nothing USDC campaign for the FundSpring Arc Testnet launch.",
+        "creationTransaction": "0x8c72ebdfb058f9ba05f58aa655791325cf6b5c1738c76bc2f39a5b110fe6a7c4",
+        "creationBlock": 53581618,
+        "constructorParameters": {
+          "factory": "0x95EfD270DCf7349E564d23646AedB3b0c609Cf27",
+          "creator": "0x4879A69d08dc2fFE9D63000B74BdEB5F22F2eCF7",
+          "usdc": "0x3600000000000000000000000000000000000000",
+          "title": "FundSpring Community Launch",
+          "metadataURI": "https://fundspring.vercel.app/metadata/demo-campaign.json",
+          "fundingGoal": "10000000",
+          "deadline": 1787571596,
+          "beneficiary": "0x4879A69d08dc2fFE9D63000B74BdEB5F22F2eCF7"
+        },
+        "verification": {
+          "status": "pending",
+          "reason": "Awaiting Arc Testnet Explorer Blockscout API availability.",
+          "sourceUrl": null
+        }
+      }
+    ]
   },
   "externalDependencies": {
     "USDC": "0x3600000000000000000000000000000000000000",
@@ -15,6 +50,10 @@
     "rpc": "https://rpc.testnet.arc.network",
     "explorer": "https://testnet.arcscan.app"
   },
-  "notes": "No deployment has been executed. Populate project contract records only from final Arc Testnet receipts and explorer data."
+  "validationTransactions": {
+    "batchApproveAndContribute": "0x5dc0638361a7291b79d8965ca704ea1805ae9f6fb74a4f8a18f8915b9a396b51",
+    "memoContribution": "0xfc7dcb243c207782dfc50270818ac8ada71b0a5eb67952bd96c7f35258e46172",
+    "atomicBatchRevert": "0x5a11a9fc1fecb12984a4e97f685849eb43e291ae430ebb538cfbc16363d50cb2"
+  },
+  "notes": "Addresses and hashes were read from final Arc Testnet receipts. External infrastructure is listed separately and is not FundSpring-owned."
 }
-

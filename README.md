@@ -213,8 +213,8 @@ npm run typecheck
 npm run build
 ```
 
-Open `http://localhost:3000`. Without a deployed factory, the app renders a
-deployment-pending state rather than using fabricated campaigns or addresses.
+Open `http://localhost:3000`, or use the production deployment at
+[fundspring.vercel.app](https://fundspring.vercel.app).
 
 ## Deployment
 
@@ -228,9 +228,8 @@ forge script script/Deploy.s.sol:Deploy \
   --broadcast
 ```
 
-Then copy only real output from `broadcast/` into
-`deployments/arc-testnet.json`, set the frontend factory address and deployment
-block, and rebuild.
+The current finalized addresses and transactions are recorded in
+`deployments/arc-testnet.json`.
 
 Verify with the Blockscout verifier used by Arc Testnet Explorer:
 
@@ -248,16 +247,23 @@ Detailed commands are in [docs/deployment.md](docs/deployment.md).
 
 ## Project-Deployed Contracts
 
-No project contracts are deployed as of this repository revision.
+- `CampaignFactory` - factory and campaign registry at
+  [`0x95Ef...Cf27`](https://testnet.arcscan.app/address/0x95EfD270DCf7349E564d23646AedB3b0c609Cf27).
+  Deployed on Arc Testnet in
+  [`0x0a7b...772d`](https://testnet.arcscan.app/tx/0x0a7b3ee27fac39a1551d48da82af34a0555deeb97ce9c959b503cb9d2e4d772d)
+  with official USDC as its constructor parameter. User functions include
+  `createCampaign`, paginated registry reads, and creator lookups.
+- `FundingCampaign` - demo all-or-nothing campaign at
+  [`0x8aa7...515e`](https://testnet.arcscan.app/address/0x8aa797faa44265A5c0f7921748b8D891C617515e),
+  created in
+  [`0x8c72...a7c4`](https://testnet.arcscan.app/tx/0x8c72ebdfb058f9ba05f58aa655791325cf6b5c1738c76bc2f39a5b110fe6a7c4).
+  User functions include `contribute`, `finalizeCampaign`, `claimFunds`,
+  `claimRefund`, and read-only campaign state.
 
-When deployed, this section must list only:
-
-- `CampaignFactory` — factory and campaign registry;
-- `FundingCampaign` instances — one immutable campaign contract per creation.
-
-Each record must include its real address, network, deployment transaction,
-constructor values, and verified-source link. See
-[deployments/arc-testnet.json](deployments/arc-testnet.json).
+Constructor parameters and blocks are recorded in
+[deployments/arc-testnet.json](deployments/arc-testnet.json). Source
+verification is pending because Arc Testnet Explorer's Blockscout API returned
+HTTP 503 on the verification request; no verified-source claim is made.
 
 ## External Arc and Circle Dependencies
 
@@ -301,12 +307,12 @@ source for campaign economics. See [SECURITY.md](SECURITY.md) and
 - EOA detection is conservative and cannot guarantee every wallet integration
   supports transaction extensions.
 - Exact Memo and Multicall3From behavior cannot be reproduced by local Anvil;
-  onchain Arc Testnet validation remains required before public launch.
+  the recorded Arc Testnet receipts are the validation source.
+- Explorer source verification is pending after a Blockscout API HTTP 503.
 
 ## Roadmap
 
-- complete and record an Arc Testnet deployment;
-- run the exact Memo and Multicall3From validation matrix with funded EOAs;
+- retry Blockscout source verification when the explorer API is available;
 - add a production indexer after event volume justifies it;
 - optionally integrate Arc App Kit as a non-atomic wallet-funding prerequisite;
 - commission an independent smart-contract audit.
@@ -328,4 +334,3 @@ source for campaign economics. See [SECURITY.md](SECURITY.md) and
 - [Arc Brand Guidelines and Partner Toolkit](https://www.arc.io/brand-guidelines-and-partner-toolkit)
 
 Arc is a trademark of Circle Internet Group, Inc. and/or its affiliates.
-
