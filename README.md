@@ -182,7 +182,7 @@ git clone <repository-url>
 cd fundspring
 cp .env.example .env.local
 npm install
-forge install foundry-rs/forge-std --no-commit
+forge install foundry-rs/forge-std --no-git
 ```
 
 Keep the verified Arc values in `.env.local`. Leave
