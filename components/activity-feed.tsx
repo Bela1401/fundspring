@@ -7,6 +7,7 @@ import {
   parseEventLogs,
   type Address,
   type Hex,
+  type Log,
   type PublicClient,
 } from "viem";
 import { usePublicClient } from "wagmi";
@@ -61,12 +62,50 @@ async function loadActivity(client: PublicClient, campaign: Address): Promise<Ac
     fromBlock = latest > 100_000n ? latest - 100_000n : 0n;
   }
 
-  await new Promise((resolve) => setTimeout(resolve, 1_200));
   const configuredFactory = factoryAddress;
-  const addresses = configuredFactory
-    ? [campaign, usdcAddress, memoAddress, configuredFactory]
-    : [campaign, usdcAddress, memoAddress];
-  const logs = await client.getLogs({ address: addresses, fromBlock, toBlock: "latest" });
+  const latest = await client.getBlockNumber();
+  const logs: Log[] = [];
+  const chunkSize = 9_000n;
+  const pause = () => new Promise((resolve) => setTimeout(resolve, 650));
+  for (let cursor = fromBlock; cursor <= latest; cursor += chunkSize) {
+    const toBlock = cursor + chunkSize - 1n > latest ? latest : cursor + chunkSize - 1n;
+    logs.push(...await client.getLogs({ address: campaign, fromBlock: cursor, toBlock }));
+    await pause();
+    logs.push(...await client.getLogs({
+      address: usdcAddress,
+      event: transferEvent,
+      args: { to: campaign },
+      fromBlock: cursor,
+      toBlock,
+    }));
+    await pause();
+    logs.push(...await client.getLogs({
+      address: usdcAddress,
+      event: transferEvent,
+      args: { from: campaign },
+      fromBlock: cursor,
+      toBlock,
+    }));
+    await pause();
+    logs.push(...await client.getLogs({
+      address: memoAddress,
+      event: memoEvent,
+      args: { target: campaign },
+      fromBlock: cursor,
+      toBlock,
+    }));
+    await pause();
+    if (configuredFactory) {
+      logs.push(...await client.getLogs({
+        address: configuredFactory,
+        event: createdEvent,
+        args: { campaign },
+        fromBlock: cursor,
+        toBlock,
+      }));
+      await pause();
+    }
+  }
 
   const campaignLogs = parseEventLogs({
     abi: [contributionEvent, cancelledEvent, finalizedEvent, claimedEvent, refundEvent],

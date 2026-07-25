@@ -12,6 +12,7 @@ import { explorerAddress } from "@/lib/arc";
 import { ContributionPanel } from "./contribution-panel";
 import { ActivityFeed } from "./activity-feed";
 import { CampaignActions } from "./campaign-actions";
+import { FundWalletPanel } from "./fund-wallet-panel";
 
 export function CampaignDetail({ address }: { address: Address }) {
   const { data: campaign, isLoading, error } = useCampaign(address);
@@ -34,6 +35,15 @@ export function CampaignDetail({ address }: { address: Address }) {
           <h1 className="font-editorial mt-7 max-w-4xl text-5xl leading-[1.02] tracking-tight text-white md:text-7xl">
             {campaign.title}
           </h1>
+          {campaign.metadata?.image && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={campaign.metadata.image}
+              alt=""
+              className="mt-7 max-h-[30rem] w-full rounded-3xl border border-white/8 object-cover"
+              referrerPolicy="no-referrer"
+            />
+          )}
           <p className="mt-6 max-w-3xl text-base leading-7 text-stone-400">
             {campaign.metadata?.description ?? "Campaign details are recorded in the linked metadata document."}
           </p>
@@ -71,6 +81,7 @@ export function CampaignDetail({ address }: { address: Address }) {
               <p className="mt-3">New contributions are unavailable because this campaign is {campaignStatuses[campaign.status]?.toLowerCase()}.</p>
             </div>
           )}
+          <FundWalletPanel />
           <CampaignActions campaign={campaign} />
           <div className="mt-5 rounded-xl border border-white/7 p-4 text-xs leading-5 text-stone-600">
             Experimental Arc Testnet software. Contracts have not undergone a professional third-party security audit.
@@ -80,4 +91,3 @@ export function CampaignDetail({ address }: { address: Address }) {
     </section>
   );
 }
-

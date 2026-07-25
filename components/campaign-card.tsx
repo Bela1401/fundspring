@@ -6,13 +6,24 @@ export function CampaignCard({ campaign }: { campaign: CampaignSummary }) {
   const progress = Number(campaign.progressBps) / 100;
   return (
     <Link href={`/campaigns/${campaign.address}`} className="campaign-card group">
+      {campaign.metadata?.image && (
+        // External campaign media is validated as HTTPS metadata and intentionally remains unoptimized.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={campaign.metadata.image}
+          alt=""
+          className="mb-5 h-40 w-full rounded-xl object-cover"
+          loading="lazy"
+          referrerPolicy="no-referrer"
+        />
+      )}
       <div className="flex items-start justify-between gap-4">
         <span className={`status status-${campaign.status}`}>
           {campaignStatuses[campaign.status] ?? "Unknown"}
         </span>
         <span className="text-xs text-stone-500">{shorten(campaign.address)}</span>
       </div>
-      <div className="mt-8">
+      <div className={campaign.metadata?.image ? "mt-5" : "mt-8"}>
         <h3 className="text-2xl font-semibold tracking-tight text-white transition group-hover:text-lime-200">
           {campaign.title}
         </h3>
@@ -41,4 +52,3 @@ export function CampaignCard({ campaign }: { campaign: CampaignSummary }) {
     </Link>
   );
 }
-

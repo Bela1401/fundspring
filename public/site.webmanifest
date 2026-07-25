@@ -1,0 +1,16 @@
+{
+  "name": "FundSpring",
+  "short_name": "FundSpring",
+  "description": "Independent all-or-nothing USDC crowdfunding built on Arc Network.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#07110d",
+  "theme_color": "#07110d",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

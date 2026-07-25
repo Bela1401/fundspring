@@ -2,16 +2,40 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
-import { WagmiProvider, createConfig, http } from "wagmi";
-import { injected } from "wagmi/connectors";
-import { mainnet } from "viem/chains";
+import { WagmiProvider, createConfig, fallback, http } from "wagmi";
+import { coinbaseWallet, injected, walletConnect } from "wagmi/connectors";
+import { arbitrumSepolia, baseSepolia, mainnet, sepolia } from "viem/chains";
 import { ARC_RPC_URL, arcChain } from "@/lib/arc";
 
+const walletConnectProjectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
+const publicArcTransports =
+  ARC_RPC_URL === "https://rpc.testnet.arc.network"
+    ? [
+        http("https://rpc.drpc.testnet.arc.network"),
+        http("https://rpc.blockdaemon.testnet.arc.network"),
+        http(ARC_RPC_URL),
+      ]
+    : [
+        http(ARC_RPC_URL),
+        http("https://rpc.drpc.testnet.arc.network"),
+        http("https://rpc.blockdaemon.testnet.arc.network"),
+      ];
+const connectors = [
+  injected({ shimDisconnect: true }),
+  coinbaseWallet({ appName: "FundSpring" }),
+  ...(walletConnectProjectId
+    ? [walletConnect({ projectId: walletConnectProjectId, showQrModal: true })]
+    : []),
+];
+
 const config = createConfig({
-  chains: [arcChain, mainnet],
-  connectors: [injected({ shimDisconnect: true })],
+  chains: [arcChain, sepolia, baseSepolia, arbitrumSepolia, mainnet],
+  connectors,
   transports: {
-    [arcChain.id]: http(ARC_RPC_URL),
+    [arcChain.id]: fallback(publicArcTransports, { rank: true }),
+    [sepolia.id]: http(),
+    [baseSepolia.id]: http(),
+    [arbitrumSepolia.id]: http(),
     [mainnet.id]: http("https://cloudflare-eth.com"),
   },
   ssr: true,

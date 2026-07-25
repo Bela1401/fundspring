@@ -40,9 +40,22 @@ transfer. Standard USDC is assumed not to be fee-on-transfer.
 - An Arc blocklist revert still consumes gas.
 - RPC/indexer failure can delay UI reconciliation but cannot change contract
   state.
+- App Kit bridging is a separate crosschain lifecycle with independent source
+  chain, attestation, forwarding, and failure states. It is never treated as
+  atomic with a FundSpring contribution.
+
+## Web application controls
+
+- external metadata is runtime-validated, limited to 64 KB, and optional URLs
+  must use HTTPS;
+- security headers restrict framing, objects, browser permissions, referrers,
+  and resource origins;
+- the standard wallet route remains available when EOA-only Arc transaction
+  extensions are unavailable;
+- CI gates lint, types, frontend unit tests, production build, dependency
+  severity, formatting, compilation, and contract tests.
 
 ## Audit status
 
 No professional third-party audit has been completed. Test coverage and code
 review do not substitute for an independent audit.
-

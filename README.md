@@ -65,6 +65,8 @@ flowchart LR
   MULTI -->|"approve + contribute"| USDC
   MULTI --> C1
   UI -->|"eth_getLogs / receipts"| RPC["Arc RPC"]
+  U -->|"optional separate bridge"| APPKIT["Circle App Kit"]
+  APPKIT -->|"USDC after bridge completion"| U
 ```
 
 See [docs/architecture.md](docs/architecture.md) for the complete transaction
@@ -87,6 +89,11 @@ The Memo and Multicall3From flows are never nested. Both require a direct EOA
 caller. FundSpring checks for contract code and falls back to the standard
 two-transaction route. It does not claim that every wallet supports Arc
 transaction extensions.
+
+The optional App Kit panel bridges testnet USDC from Ethereum Sepolia, Base
+Sepolia, or Arbitrum Sepolia to Arc Testnet. It waits for the bridge result,
+switches back to Arc, and keeps the subsequent contribution as a separate user
+action. Bridge and contribution are never described as atomic.
 
 ## Arc transaction memo format
 
@@ -210,7 +217,10 @@ Multicall3From must additionally be exercised against Arc Testnet. See
 npm run dev
 npm run lint
 npm run typecheck
+npm run test:frontend
 npm run build
+# or run the complete frontend gate:
+npm run check
 ```
 
 Open `http://localhost:3000`, or use the production deployment at
@@ -273,12 +283,9 @@ These are shared infrastructure and are **not owned or deployed by FundSpring**:
 - Arc Memo contract;
 - Arc Multicall3From contract;
 - Arc RPC and Arc Testnet Explorer;
-- Circle Faucet for test funds.
-
-App Kit is not part of the core MVP and is not installed. A future, isolated
-"fund wallet from another network" enhancement may bridge USDC, wait for bridge
-completion, refresh Arc balance, and only then enable a separate contribution.
-It must not describe bridge + contribution as atomic.
+- Circle Faucet for test funds;
+- Circle App Kit and its Viem adapter for the optional, non-atomic testnet USDC
+  wallet-funding flow.
 
 ## Security considerations
 
@@ -290,6 +297,11 @@ It must not describe bridge + contribution as atomic.
 - zero-before-transfer refund accounting;
 - no proxy, delegatecall, platform withdrawal, fee, or admin custody;
 - no unbounded contributor payment loop.
+- runtime validation and a 64 KB limit for external campaign metadata;
+- production CSP, anti-framing, MIME-sniffing, referrer, and permissions headers;
+- GitHub Actions gates for frontend and contract checks;
+- separate fee estimates for approval and contribution, with a post-approval
+  Arc balance recheck.
 
 Metadata remains mutable only before the first contribution and is not a trusted
 source for campaign economics. See [SECURITY.md](SECURITY.md) and
@@ -303,18 +315,20 @@ source for campaign economics. See [SECURITY.md](SECURITY.md) and
   queries and can become slow with a very large registry.
 - `getCampaignsByCreator` returns a simple unbounded creator-specific array; the
   global registry provides pagination.
-- HTTPS metadata availability and accuracy are the creator's responsibility.
+- HTTPS metadata availability and accuracy are the creator's responsibility;
+  FundSpring validates its display schema but does not endorse its content.
 - EOA detection is conservative and cannot guarantee every wallet integration
   supports transaction extensions.
 - Exact Memo and Multicall3From behavior cannot be reproduced by local Anvil;
   the recorded Arc Testnet receipts are the validation source.
 - Explorer source verification is pending after a Blockscout API HTTP 503.
+- Official App Kit currently brings low/moderate transitive npm advisories; no
+  high or critical production advisory was reported by the 2026-07-25 audit.
 
 ## Roadmap
 
 - retry Blockscout source verification when the explorer API is available;
 - add a production indexer after event volume justifies it;
-- optionally integrate Arc App Kit as a non-atomic wallet-funding prerequisite;
 - commission an independent smart-contract audit.
 
 ## Official documentation used

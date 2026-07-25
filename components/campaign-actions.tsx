@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAccount, usePublicClient, useReadContracts, useWriteContract } from "wagmi";
 import { ARC_CHAIN_ID } from "@/lib/arc";
@@ -11,7 +11,7 @@ import { TransactionStatus, type TransactionState } from "./transaction-status";
 
 export function CampaignActions({ campaign }: { campaign: CampaignSummary }) {
   const [transaction, setTransaction] = useState<TransactionState>({ phase: "idle" });
-  const [now] = useState(() => BigInt(Math.floor(Date.now() / 1_000)));
+  const [now, setNow] = useState(() => BigInt(Math.floor(Date.now() / 1_000)));
   const { address, chainId } = useAccount();
   const client = usePublicClient({ chainId: ARC_CHAIN_ID });
   const { writeContractAsync } = useWriteContract();
@@ -44,6 +44,14 @@ export function CampaignActions({ campaign }: { campaign: CampaignSummary }) {
   const canFinalize = campaign.status === 0 && now >= campaign.deadline;
   const canCancel = campaign.status === 0 && isCreator;
   const canClaim = campaign.status === 1 && campaign.amountClaimed === 0n && isBeneficiary;
+
+  useEffect(() => {
+    const timer = window.setInterval(
+      () => setNow(BigInt(Math.floor(Date.now() / 1_000))),
+      15_000,
+    );
+    return () => window.clearInterval(timer);
+  }, []);
 
   async function execute(functionName: "cancelCampaign" | "finalizeCampaign" | "claimFunds" | "claimRefund", label: string) {
     if (!client || chainId !== ARC_CHAIN_ID) {

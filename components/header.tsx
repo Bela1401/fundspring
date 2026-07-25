@@ -1,17 +1,26 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { useAccount, useConnect, useDisconnect, useSwitchChain } from "wagmi";
 import { ARC_CHAIN_ID } from "@/lib/arc";
 import { shorten } from "@/lib/format";
 
 export function Header() {
+  const [walletMenuOpen, setWalletMenuOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { address, isConnected, chainId } = useAccount();
   const { connectors, connect, isPending } = useConnect();
   const { disconnect } = useDisconnect();
   const { switchChain, isPending: isSwitching } = useSwitchChain();
   const wrongNetwork = isConnected && chainId !== ARC_CHAIN_ID;
-  const connector = connectors[0];
+  const availableConnectors = connectors.filter(
+    (connector, index, list) => list.findIndex((item) => item.id === connector.id) === index,
+  );
+
+  function navLink(href: string, label: string) {
+    return <Link href={href} onClick={() => setMobileMenuOpen(false)} className="transition hover:text-white">{label}</Link>;
+  }
 
   return (
     <>
@@ -32,16 +41,17 @@ export function Header() {
           </Link>
 
           <nav className="hidden items-center gap-6 text-sm text-stone-300 md:flex">
-            <Link href="/campaigns" className="transition hover:text-white">Explore</Link>
-            <Link href="/create" className="transition hover:text-white">Create</Link>
-            <Link href="/dashboard" className="transition hover:text-white">Dashboard</Link>
+            {navLink("/campaigns", "Explore")}
+            {navLink("/create", "Create")}
+            {navLink("/dashboard", "Dashboard")}
           </nav>
 
+          <div className="flex items-center gap-2">
           {!isConnected ? (
             <button
               className="button-secondary"
-              disabled={!connector || isPending}
-              onClick={() => connector && connect({ connector })}
+              disabled={availableConnectors.length === 0 || isPending}
+              onClick={() => setWalletMenuOpen((open) => !open)}
             >
               {isPending ? "Opening wallet…" : "Connect wallet"}
             </button>
@@ -59,7 +69,42 @@ export function Header() {
               {address ? shorten(address) : "Connected"}
             </button>
           )}
+            <button
+              className="button-secondary px-3 md:hidden"
+              aria-label="Toggle navigation"
+              aria-expanded={mobileMenuOpen}
+              onClick={() => setMobileMenuOpen((open) => !open)}
+            >
+              {mobileMenuOpen ? "Close" : "Menu"}
+            </button>
+          </div>
         </div>
+        {walletMenuOpen && !isConnected && (
+          <div className="shell pb-4">
+            <div className="ml-auto grid max-w-sm gap-2 rounded-xl border border-white/10 bg-[#0d1a14] p-3 shadow-2xl">
+              <p className="px-2 text-xs text-stone-500">Choose a wallet. Memo and batch routes require an EOA.</p>
+              {availableConnectors.map((connector) => (
+                <button
+                  key={connector.uid}
+                  className="button-secondary w-full justify-start"
+                  onClick={() => {
+                    connect({ connector });
+                    setWalletMenuOpen(false);
+                  }}
+                >
+                  {connector.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {mobileMenuOpen && (
+          <nav className="shell grid gap-3 border-t border-white/8 py-4 text-sm text-stone-300 md:hidden">
+            {navLink("/campaigns", "Explore campaigns")}
+            {navLink("/create", "Create campaign")}
+            {navLink("/dashboard", "Dashboard")}
+          </nav>
+        )}
       </header>
       {wrongNetwork && (
         <div className="border-b border-amber-300/20 bg-amber-300/10 px-4 py-2 text-center text-xs text-amber-100">
@@ -69,4 +114,3 @@ export function Header() {
     </>
   );
 }
-

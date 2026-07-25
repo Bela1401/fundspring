@@ -16,6 +16,7 @@ flowchart TB
   USDC["Official USDC (external)"]
   Memo["Arc Memo (external)"]
   Batch["Arc Multicall3From (external)"]
+  AppKit["Circle App Kit / CCTP (external)"]
   RPC["Arc RPC / logs (external)"]
 
   Wallet --> Frontend
@@ -29,6 +30,8 @@ flowchart TB
   Batch --> USDC
   Batch --> Campaign
   Frontend --> RPC
+  Wallet --> AppKit
+  AppKit --> Wallet
 ```
 
 ## USDC movement
@@ -51,7 +54,8 @@ contribution plus estimated gas.
 - **Memo:** allowance is prepared separately; direct EOA calls `Memo.memo`
   wrapping only `FundingCampaign.contribute`.
 
-Memo is never nested in Multicall3From.
+Memo is never nested in Multicall3From. The optional App Kit bridge completes
+before the wallet returns to Arc and does not submit a campaign contribution.
 
 ## Event indexing and reconciliation
 
@@ -75,7 +79,6 @@ event IDs.
 
 ## External dependencies
 
-USDC, Memo, Multicall3From, RPC, explorer, wallet providers, and optional future
-App Kit integration are external infrastructure. Only CampaignFactory and
-FundingCampaign instances are project contracts.
-
+USDC, Memo, Multicall3From, App Kit/CCTP, RPC, explorer, and wallet providers
+are external infrastructure. Only CampaignFactory and FundingCampaign
+instances are project contracts.

@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  encodeAbiParameters,
   encodeFunctionData,
   formatEther,
   keccak256,
@@ -28,6 +27,8 @@ import {
 } from "@/lib/contracts";
 import { errorMessage, formatUsdc } from "@/lib/format";
 import type { CampaignSummary } from "@/lib/campaigns";
+import { contributionFeeEstimate } from "@/lib/contribution-fees";
+import { buildContributionMemo } from "@/lib/contribution-reference";
 import { TransactionStatus, type TransactionState } from "./transaction-status";
 import { useQuery } from "@tanstack/react-query";
 
@@ -61,6 +62,7 @@ export function ContributionPanel({ campaign }: { campaign: CampaignSummary }) {
   const [mode, setMode] = useState<Mode>("standard");
   const [reference, setReference] = useState(localReference);
   const [fee, setFee] = useState<bigint>();
+  const [feeBreakdown, setFeeBreakdown] = useState<{ approval: bigint; action: bigint }>();
   const [feeNote, setFeeNote] = useState("");
   const [transaction, setTransaction] = useState<TransactionState>({ phase: "idle" });
   const { address, isConnected, chainId } = useAccount();
@@ -118,26 +120,7 @@ export function ContributionPanel({ campaign }: { campaign: CampaignSummary }) {
 
   const memoValues = useMemo(() => {
     if (!address || !reference) return undefined;
-    const memoId = keccak256(
-      encodeAbiParameters(
-        [
-          { name: "campaignAddress", type: "address" },
-          { name: "contributorAddress", type: "address" },
-          { name: "contributionReference", type: "string" },
-        ],
-        [campaign.address, address, reference],
-      ),
-    );
-    const memoData = encodeAbiParameters(
-      [
-        { name: "application", type: "string" },
-        { name: "action", type: "string" },
-        { name: "campaign", type: "address" },
-        { name: "reference", type: "string" },
-      ],
-      ["FUNSPRING", "CONTRIBUTION", campaign.address, reference],
-    );
-    return { memoId, memoData };
+    return buildContributionMemo(campaign.address, address, reference);
   }, [address, campaign.address, reference]);
 
   useEffect(() => {
@@ -145,13 +128,15 @@ export function ContributionPanel({ campaign }: { campaign: CampaignSummary }) {
     async function estimate() {
       if (!client || !address || amount === 0n || chainId !== ARC_CHAIN_ID) {
         setFee(undefined);
+        setFeeBreakdown(undefined);
         return;
       }
       try {
         const gasPrice = await client.getGasPrice();
-        let gas: bigint;
+        let approvalGas = 0n;
+        let actionGas: bigint;
         if (mode === "batch" && needsApproval) {
-          gas = await client.estimateContractGas({
+          actionGas = await client.estimateContractGas({
             account: address,
             address: multicall3FromAddress,
             abi: multicall3FromAbi,
@@ -163,7 +148,7 @@ export function ContributionPanel({ campaign }: { campaign: CampaignSummary }) {
           });
           setFeeNote("Atomic approve + contribute");
         } else if (mode === "memo" && memoValues && !needsApproval) {
-          gas = await client.estimateContractGas({
+          actionGas = await client.estimateContractGas({
             account: address,
             address: memoAddress,
             abi: memoAbi,
@@ -172,16 +157,17 @@ export function ContributionPanel({ campaign }: { campaign: CampaignSummary }) {
           });
           setFeeNote("Memo contribution");
         } else if (needsApproval) {
-          gas = await client.estimateContractGas({
+          approvalGas = await client.estimateContractGas({
             account: address,
             address: usdcAddress,
             abi: usdcAbi,
             functionName: "approve",
             args: [campaign.address, amount],
           });
-          setFeeNote("Approval only; contribution fee follows");
+          actionGas = mode === "memo" ? 350_000n : 250_000n;
+          setFeeNote("Approval via Arc RPC + conservative contribution allowance");
         } else {
-          gas = await client.estimateContractGas({
+          actionGas = await client.estimateContractGas({
             account: address,
             address: campaign.address,
             abi: campaignAbi,
@@ -190,10 +176,15 @@ export function ContributionPanel({ campaign }: { campaign: CampaignSummary }) {
           });
           setFeeNote("Direct contribution");
         }
-        if (!cancelled) setFee(gas * gasPrice);
+        const estimate = contributionFeeEstimate(approvalGas, actionGas, gasPrice);
+        if (!cancelled) {
+          setFee(estimate.total);
+          setFeeBreakdown({ approval: estimate.approval, action: estimate.action });
+        }
       } catch {
         if (!cancelled) {
           setFee(undefined);
+          setFeeBreakdown(undefined);
           setFeeNote("Fee estimate unavailable until the call can be simulated");
         }
       }
@@ -268,6 +259,31 @@ export function ContributionPanel({ campaign }: { campaign: CampaignSummary }) {
     await reads.refetch();
   }
 
+  async function ensureActionBalance(action: "contribute" | "memo") {
+    if (!client || !address) throw new Error("Arc RPC is unavailable.");
+    const gasPrice = await client.getGasPrice();
+    const gas =
+      action === "memo" && memoValues
+        ? await client.estimateContractGas({
+            account: address,
+            address: memoAddress,
+            abi: memoAbi,
+            functionName: "memo",
+            args: [campaign.address, calls.contributeData, memoValues.memoId, memoValues.memoData],
+          })
+        : await client.estimateContractGas({
+            account: address,
+            address: campaign.address,
+            abi: campaignAbi,
+            functionName: "contribute",
+            args: [amount],
+          });
+    const required = parseUnits(amountInput, 18) + gas * gasPrice;
+    if ((await client.getBalance({ address })) < required) {
+      throw new Error("Add more USDC: the remaining balance cannot cover the contribution and its Arc fee.");
+    }
+  }
+
   async function contribute() {
     if (!client || !address || amount === 0n) return;
     if (chainId !== ARC_CHAIN_ID) {
@@ -311,6 +327,7 @@ export function ContributionPanel({ campaign }: { campaign: CampaignSummary }) {
         if (!isEoa) throw new Error("Transaction memos require a direct EOA wallet. Use the standard flow.");
         await approveIfNeeded();
         if (!memoValues) throw new Error("Memo reference could not be generated.");
+        await ensureActionBalance("memo");
         setTransaction({ phase: "signing", message: "Review the referenced contribution in your wallet." });
         const hash = await writeContractAsync({
           chainId: ARC_CHAIN_ID,
@@ -324,6 +341,7 @@ export function ContributionPanel({ campaign }: { campaign: CampaignSummary }) {
         setTransaction({ phase: "final", hash, message: `Contribution ${reference} is final and reconciled.` });
       } else {
         await approveIfNeeded();
+        await ensureActionBalance("contribute");
         setTransaction({ phase: "signing", message: "Review the contribution in your wallet." });
         const hash = await writeContractAsync({
           chainId: ARC_CHAIN_ID,
@@ -413,6 +431,12 @@ export function ContributionPanel({ campaign }: { campaign: CampaignSummary }) {
           <span className="text-white">{fee === undefined ? "Unavailable" : `${Number(formatEther(fee)).toFixed(6)} USDC`}</span>
         </div>
         <p className="mt-1 text-[11px] text-stone-600">{feeNote || "Enter an amount to estimate via Arc RPC."}</p>
+        {feeBreakdown && feeBreakdown.approval > 0n && (
+          <p className="mt-1 text-[11px] text-stone-600">
+            Approval {Number(formatEther(feeBreakdown.approval)).toFixed(6)} + action{" "}
+            {Number(formatEther(feeBreakdown.action)).toFixed(6)} USDC
+          </p>
+        )}
       </div>
 
       <button

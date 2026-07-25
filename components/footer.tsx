@@ -9,6 +9,7 @@ export function Footer() {
           <Link href="/campaigns">Campaigns</Link>
           <Link href="/create">Create</Link>
           <Link href="/dashboard">Dashboard</Link>
+          <Link href="/legal">Risk & privacy</Link>
           <a href="https://docs.arc.io" target="_blank" rel="noreferrer">Arc docs</a>
           <a href="https://testnet.arcscan.app" target="_blank" rel="noreferrer">Explorer</a>
         </div>

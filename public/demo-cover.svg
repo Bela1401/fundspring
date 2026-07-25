@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-labelledby="title description">
+  <title id="title">FundSpring Community Launch</title>
+  <desc id="description">Abstract green growth rings for FundSpring, an independent crowdfunding application built on Arc.</desc>
+  <defs>
+    <radialGradient id="glow" cx="70%" cy="30%" r="70%">
+      <stop offset="0" stop-color="#bef264" stop-opacity=".28"/>
+      <stop offset="1" stop-color="#07110d" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="line" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#34d399"/>
+      <stop offset="1" stop-color="#bef264"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="#07110d"/>
+  <rect width="1200" height="630" fill="url(#glow)"/>
+  <g fill="none" stroke="url(#line)" stroke-opacity=".32">
+    <circle cx="940" cy="170" r="110"/>
+    <circle cx="940" cy="170" r="190"/>
+    <circle cx="940" cy="170" r="280"/>
+    <circle cx="940" cy="170" r="380"/>
+  </g>
+  <rect x="78" y="72" width="58" height="58" rx="16" fill="#bef264"/>
+  <path d="M95 116V86h25v8h-16v5h13v7h-13v10z" fill="#11200f"/>
+  <text x="154" y="112" fill="#f5f7f3" font-family="Arial, sans-serif" font-size="39" font-weight="700">FundSpring</text>
+  <text x="80" y="307" fill="#f5f7f3" font-family="Georgia, serif" font-size="76" font-weight="600">Community Launch</text>
+  <text x="82" y="370" fill="#a7b0a9" font-family="Arial, sans-serif" font-size="27">Transparent USDC crowdfunding · Built on Arc</text>
+  <rect x="80" y="454" width="290" height="64" rx="32" fill="#bef264"/>
+  <text x="121" y="495" fill="#11200f" font-family="Arial, sans-serif" font-size="24" font-weight="700">All-or-nothing funding</text>
+</svg>

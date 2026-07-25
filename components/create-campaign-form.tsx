@@ -6,11 +6,11 @@ import { useAccount, usePublicClient, useWriteContract } from "wagmi";
 import { ARC_CHAIN_ID, factoryAddress, explorerAddress } from "@/lib/arc";
 import { factoryAbi } from "@/lib/contracts";
 import { errorMessage } from "@/lib/format";
+import { fetchCampaignMetadata, type CampaignMetadata } from "@/lib/metadata";
 import { TransactionStatus, type TransactionState } from "./transaction-status";
 
 interface FormData {
   title: string;
-  description: string;
   metadataURI: string;
   goal: string;
   deadline: string;
@@ -19,7 +19,6 @@ interface FormData {
 
 const initialForm: FormData = {
   title: "",
-  description: "",
   metadataURI: "",
   goal: "",
   deadline: "",
@@ -31,6 +30,8 @@ export function CreateCampaignForm() {
   const [openedAt] = useState(() => Date.now());
   const [transaction, setTransaction] = useState<TransactionState>({ phase: "idle" });
   const [campaignAddress, setCampaignAddress] = useState<`0x${string}`>();
+  const [metadataPreview, setMetadataPreview] = useState<CampaignMetadata | null>();
+  const [metadataChecking, setMetadataChecking] = useState(false);
   const { address, isConnected, chainId } = useAccount();
   const client = usePublicClient({ chainId: ARC_CHAIN_ID });
   const { writeContractAsync } = useWriteContract();
@@ -38,7 +39,6 @@ export function CreateCampaignForm() {
   const validation = useMemo(() => {
     if (!form.title.trim()) return "Add a campaign title.";
     if (form.title.trim().length > 120) return "Keep the title under 120 characters.";
-    if (form.description.trim().length < 20) return "Add a meaningful short description.";
     if (!/^https:\/\//.test(form.metadataURI) && !/^http:\/\/localhost/.test(form.metadataURI)) {
       return "Use an HTTPS metadata URL (localhost is allowed for development).";
     }
@@ -50,6 +50,15 @@ export function CreateCampaignForm() {
     return null;
   }, [form, openedAt]);
 
+  async function checkMetadata(): Promise<CampaignMetadata | null> {
+    if (!form.metadataURI) return null;
+    setMetadataChecking(true);
+    const metadata = await fetchCampaignMetadata(form.metadataURI.trim());
+    setMetadataPreview(metadata);
+    setMetadataChecking(false);
+    return metadata;
+  }
+
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (!factoryAddress || !address || !client || validation) return;
@@ -59,6 +68,14 @@ export function CreateCampaignForm() {
     }
 
     try {
+      const metadata = await checkMetadata();
+      if (!metadata) {
+        setTransaction({
+          phase: "error",
+          message: "Metadata could not be loaded as valid HTTPS JSON. Check CORS, size, and description.",
+        });
+        return;
+      }
       setTransaction({ phase: "signing", message: "Review campaign creation in your wallet." });
       const hash = await writeContractAsync({
         chainId: ARC_CHAIN_ID,
@@ -113,14 +130,23 @@ export function CreateCampaignForm() {
           <input className="field" value={form.title} onChange={(e) => update("title", e.target.value)} placeholder="Community Solar Initiative" maxLength={120} />
         </label>
         <label className="md:col-span-2">
-          <span className="label">Short description</span>
-          <textarea className="field min-h-28 resize-y" value={form.description} onChange={(e) => update("description", e.target.value)} placeholder="Explain what will be funded and why it matters." />
-          <span className="help">For the public campaign page, include this text in the JSON document at the metadata URL.</span>
-        </label>
-        <label className="md:col-span-2">
           <span className="label">Metadata URL</span>
-          <input className="field" type="url" value={form.metadataURI} onChange={(e) => update("metadataURI", e.target.value)} placeholder="https://example.org/campaign.json" />
-          <span className="help">HTTPS JSON with name, description, optional image, and external_url.</span>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input className="field" type="url" value={form.metadataURI} onChange={(e) => { update("metadataURI", e.target.value); setMetadataPreview(undefined); }} placeholder="https://example.org/campaign.json" />
+            <button className="button-secondary shrink-0" type="button" disabled={metadataChecking || !form.metadataURI} onClick={() => void checkMetadata()}>
+              {metadataChecking ? "Checking…" : "Validate metadata"}
+            </button>
+          </div>
+          <span className="help">HTTPS JSON, at most 64 KB, with a 20–2,000 character description. Image and external URL must also use HTTPS.</span>
+          {metadataPreview && (
+            <span className="mt-3 block rounded-xl border border-lime-300/20 bg-lime-300/5 p-3 text-sm text-stone-300">
+              <strong className="block text-white">{metadataPreview.name ?? form.title}</strong>
+              <span className="mt-1 block text-xs leading-5">{metadataPreview.description}</span>
+            </span>
+          )}
+          {metadataPreview === null && (
+            <span className="mt-2 block text-xs text-rose-200">Metadata is unavailable or does not match the FundSpring schema.</span>
+          )}
         </label>
         <label>
           <span className="label">Funding goal</span>
