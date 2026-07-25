@@ -1,0 +1,30 @@
+[profile.default]
+src = "contracts"
+test = "test"
+script = "script"
+out = "out"
+libs = ["lib", "node_modules"]
+solc_version = "0.8.30"
+evm_version = "osaka"
+optimizer = true
+optimizer_runs = 200
+ffi = false
+
+[fmt]
+line_length = 100
+tab_width = 4
+bracket_spacing = true
+int_types = "long"
+quote_style = "double"
+
+[fuzz]
+runs = 256
+
+[invariant]
+runs = 128
+depth = 64
+fail_on_revert = false
+
+[rpc_endpoints]
+arc_testnet = "${ARC_RPC_URL}"
+

@@ -1,0 +1,20 @@
+{
+  "status": "pending",
+  "network": "Arc Testnet",
+  "chainId": 5042002,
+  "deployer": null,
+  "deploymentBlock": null,
+  "contracts": {
+    "CampaignFactory": null,
+    "FundingCampaigns": []
+  },
+  "externalDependencies": {
+    "USDC": "0x3600000000000000000000000000000000000000",
+    "Memo": "0x5294E9927c3306DcBaDb03fe70b92e01cCede505",
+    "Multicall3From": "0x522fAf9A91c41c443c66765030741e4AaCe147D0",
+    "rpc": "https://rpc.testnet.arc.network",
+    "explorer": "https://testnet.arcscan.app"
+  },
+  "notes": "No deployment has been executed. Populate project contract records only from final Arc Testnet receipts and explorer data."
+}
+

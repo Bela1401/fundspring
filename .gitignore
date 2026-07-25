@@ -1,0 +1,31 @@
+# dependencies
+node_modules/
+lib/
+
+# Next.js
+.next/
+out/
+
+# Foundry
+cache/
+out/
+broadcast/
+
+# local configuration and secrets
+.env
+.env.local
+.env.*.local
+!.env.example
+*.keystore
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# logs and coverage
+*.log
+*.tsbuildinfo
+coverage/
+lcov.info
