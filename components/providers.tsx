@@ -32,7 +32,7 @@ const config = createConfig({
   chains: [arcChain, sepolia, baseSepolia, arbitrumSepolia, mainnet],
   connectors,
   transports: {
-    [arcChain.id]: fallback(publicArcTransports, { rank: true }),
+    [arcChain.id]: fallback(publicArcTransports),
     [sepolia.id]: http(),
     [baseSepolia.id]: http(),
     [arbitrumSepolia.id]: http(),
