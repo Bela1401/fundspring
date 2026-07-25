@@ -2,14 +2,14 @@
   "status": "deployed",
   "network": "Arc Testnet",
   "chainId": 5042002,
-  "deployer": "0x4879A69d08dc2fFE9D63000B74BdEB5F22F2eCF7",
-  "deploymentBlock": 53581483,
+  "deployer": "0xC709918714Fd9b1bF973b250454A1d0a7B9E0c26",
+  "deploymentBlock": 53586476,
   "contracts": {
     "CampaignFactory": {
-      "address": "0x95EfD270DCf7349E564d23646AedB3b0c609Cf27",
+      "address": "0xA21d0D15C0851E04D560826Fa20EB787B9C30cb8",
       "purpose": "Deploys and indexes FundSpring campaign contracts.",
-      "deploymentTransaction": "0x0a7b3ee27fac39a1551d48da82af34a0555deeb97ce9c959b503cb9d2e4d772d",
-      "deploymentBlock": 53581483,
+      "deploymentTransaction": "0xa334cc5d8aa86f477036955fb23962c609dc391f289c03981c35bbf3fc9dcca2",
+      "deploymentBlock": 53586476,
       "constructorParameters": {
         "usdc": "0x3600000000000000000000000000000000000000"
       },
@@ -21,19 +21,19 @@
     },
     "FundingCampaigns": [
       {
-        "address": "0x8aa797faa44265A5c0f7921748b8D891C617515e",
+        "address": "0x2112eFE5f68F7f9d42596324230197890A29f5ab",
         "purpose": "All-or-nothing USDC campaign for the FundSpring Arc Testnet launch.",
-        "creationTransaction": "0x8c72ebdfb058f9ba05f58aa655791325cf6b5c1738c76bc2f39a5b110fe6a7c4",
-        "creationBlock": 53581618,
+        "creationTransaction": "0x350e55d554aca5941c82e752ac88ca96ae65d74fa2b4b8c1fc2a3508ecfba045",
+        "creationBlock": 53586618,
         "constructorParameters": {
-          "factory": "0x95EfD270DCf7349E564d23646AedB3b0c609Cf27",
-          "creator": "0x4879A69d08dc2fFE9D63000B74BdEB5F22F2eCF7",
+          "factory": "0xA21d0D15C0851E04D560826Fa20EB787B9C30cb8",
+          "creator": "0xC709918714Fd9b1bF973b250454A1d0a7B9E0c26",
           "usdc": "0x3600000000000000000000000000000000000000",
           "title": "FundSpring Community Launch",
           "metadataURI": "https://fundspring.vercel.app/metadata/demo-campaign.json",
           "fundingGoal": "10000000",
-          "deadline": 1787571596,
-          "beneficiary": "0x4879A69d08dc2fFE9D63000B74BdEB5F22F2eCF7"
+          "deadline": 1787574158,
+          "beneficiary": "0xC709918714Fd9b1bF973b250454A1d0a7B9E0c26"
         },
         "verification": {
           "status": "pending",
@@ -51,9 +51,9 @@
     "explorer": "https://testnet.arcscan.app"
   },
   "validationTransactions": {
-    "batchApproveAndContribute": "0x5dc0638361a7291b79d8965ca704ea1805ae9f6fb74a4f8a18f8915b9a396b51",
-    "memoContribution": "0xfc7dcb243c207782dfc50270818ac8ada71b0a5eb67952bd96c7f35258e46172",
-    "atomicBatchRevert": "0x5a11a9fc1fecb12984a4e97f685849eb43e291ae430ebb538cfbc16363d50cb2"
+    "batchApproveAndContribute": "0xa65c7b303d7163bc46c512596466d917ef5452d1ad5a2e897f4933c6cd8b2232",
+    "memoContribution": "0x3c1fb4025193565836616c97fc73f3dbb334fd5f90b7dc1cd4d4cb1d0087db56",
+    "atomicBatchRevert": "0x1fd4b74687b0e7a7b01283ca9298abbcf3f3697024a026d58117286bbdf2b210"
   },
-  "notes": "Addresses and hashes were read from final Arc Testnet receipts. External infrastructure is listed separately and is not FundSpring-owned."
+  "notes": "Active deployment replaced on 2026-07-25 using deployer 0xC709918714Fd9b1bF973b250454A1d0a7B9E0c26. Addresses and hashes were read from final Arc Testnet receipts. External infrastructure is listed separately and is not FundSpring-owned."
 }

@@ -248,15 +248,15 @@ Detailed commands are in [docs/deployment.md](docs/deployment.md).
 ## Project-Deployed Contracts
 
 - `CampaignFactory` - factory and campaign registry at
-  [`0x95Ef...Cf27`](https://testnet.arcscan.app/address/0x95EfD270DCf7349E564d23646AedB3b0c609Cf27).
+  [`0xA21d...0cb8`](https://testnet.arcscan.app/address/0xA21d0D15C0851E04D560826Fa20EB787B9C30cb8).
   Deployed on Arc Testnet in
-  [`0x0a7b...772d`](https://testnet.arcscan.app/tx/0x0a7b3ee27fac39a1551d48da82af34a0555deeb97ce9c959b503cb9d2e4d772d)
+  [`0xa334...cca2`](https://testnet.arcscan.app/tx/0xa334cc5d8aa86f477036955fb23962c609dc391f289c03981c35bbf3fc9dcca2)
   with official USDC as its constructor parameter. User functions include
   `createCampaign`, paginated registry reads, and creator lookups.
 - `FundingCampaign` - demo all-or-nothing campaign at
-  [`0x8aa7...515e`](https://testnet.arcscan.app/address/0x8aa797faa44265A5c0f7921748b8D891C617515e),
+  [`0x2112...f5ab`](https://testnet.arcscan.app/address/0x2112eFE5f68F7f9d42596324230197890A29f5ab),
   created in
-  [`0x8c72...a7c4`](https://testnet.arcscan.app/tx/0x8c72ebdfb058f9ba05f58aa655791325cf6b5c1738c76bc2f39a5b110fe6a7c4).
+  [`0x350e...a045`](https://testnet.arcscan.app/tx/0x350e55d554aca5941c82e752ac88ca96ae65d74fa2b4b8c1fc2a3508ecfba045).
   User functions include `contribute`, `finalizeCampaign`, `claimFunds`,
   `claimRefund`, and read-only campaign state.
 

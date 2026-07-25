@@ -26,15 +26,15 @@ matrix below was executed against Arc Testnet on 2026-07-25:
 ## Recorded results
 
 - CampaignFactory deployment:
-  `0x0a7b3ee27fac39a1551d48da82af34a0555deeb97ce9c959b503cb9d2e4d772d`
+  `0xa334cc5d8aa86f477036955fb23962c609dc391f289c03981c35bbf3fc9dcca2`
 - FundingCampaign creation:
-  `0x8c72ebdfb058f9ba05f58aa655791325cf6b5c1738c76bc2f39a5b110fe6a7c4`
+  `0x350e55d554aca5941c82e752ac88ca96ae65d74fa2b4b8c1fc2a3508ecfba045`
 - Successful atomic approve + contribute:
-  `0x5dc0638361a7291b79d8965ca704ea1805ae9f6fb74a4f8a18f8915b9a396b51`
+  `0xa65c7b303d7163bc46c512596466d917ef5452d1ad5a2e897f4933c6cd8b2232`
 - Successful Memo contribution:
-  `0xfc7dcb243c207782dfc50270818ac8ada71b0a5eb67952bd96c7f35258e46172`
+  `0x3c1fb4025193565836616c97fc73f3dbb334fd5f90b7dc1cd4d4cb1d0087db56`
 - Expected atomic batch revert:
-  `0x5a11a9fc1fecb12984a4e97f685849eb43e291ae430ebb538cfbc16363d50cb2`
+  `0x1fd4b74687b0e7a7b01283ca9298abbcf3f3697024a026d58117286bbdf2b210`
 
 The successful batch receipt attributed both the USDC Transfer and
 ContributionReceived event to the original EOA. The failed batch left allowance
