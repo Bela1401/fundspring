@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   decodeAbiParameters,
   parseAbiItem,
+  parseEventLogs,
   type Address,
   type Hex,
   type PublicClient,
@@ -54,33 +55,59 @@ function activityId(address: Address, txHash: Hex, logIndex: number): string {
 }
 
 async function loadActivity(client: PublicClient, campaign: Address): Promise<Activity[]> {
-  const latest = await client.getBlockNumber();
-  const fallbackStart = latest > 100_000n ? latest - 100_000n : 0n;
-  const fromBlock = deploymentBlock > 0n ? deploymentBlock : fallbackStart;
+  let fromBlock = deploymentBlock;
+  if (fromBlock === 0n) {
+    const latest = await client.getBlockNumber();
+    fromBlock = latest > 100_000n ? latest - 100_000n : 0n;
+  }
 
-  const [
-    contributions,
-    cancellations,
-    finalizations,
-    claims,
-    refunds,
-    transfersIn,
-    transfersOut,
-    memos,
-    creations,
-  ] = await Promise.all([
-    client.getLogs({ address: campaign, event: contributionEvent, fromBlock, toBlock: "latest" }),
-    client.getLogs({ address: campaign, event: cancelledEvent, fromBlock, toBlock: "latest" }),
-    client.getLogs({ address: campaign, event: finalizedEvent, fromBlock, toBlock: "latest" }),
-    client.getLogs({ address: campaign, event: claimedEvent, fromBlock, toBlock: "latest" }),
-    client.getLogs({ address: campaign, event: refundEvent, fromBlock, toBlock: "latest" }),
-    client.getLogs({ address: usdcAddress, event: transferEvent, args: { to: campaign }, fromBlock, toBlock: "latest" }),
-    client.getLogs({ address: usdcAddress, event: transferEvent, args: { from: campaign }, fromBlock, toBlock: "latest" }),
-    client.getLogs({ address: memoAddress, event: memoEvent, args: { target: campaign }, fromBlock, toBlock: "latest" }),
-    factoryAddress
-      ? client.getLogs({ address: factoryAddress, event: createdEvent, args: { campaign }, fromBlock, toBlock: "latest" })
-      : Promise.resolve([]),
-  ]);
+  await new Promise((resolve) => setTimeout(resolve, 1_200));
+  const configuredFactory = factoryAddress;
+  const addresses = configuredFactory
+    ? [campaign, usdcAddress, memoAddress, configuredFactory]
+    : [campaign, usdcAddress, memoAddress];
+  const logs = await client.getLogs({ address: addresses, fromBlock, toBlock: "latest" });
+
+  const campaignLogs = parseEventLogs({
+    abi: [contributionEvent, cancelledEvent, finalizedEvent, claimedEvent, refundEvent],
+    logs: logs.filter((log) => log.address.toLowerCase() === campaign.toLowerCase()),
+    strict: false,
+  });
+  const contributions = campaignLogs.filter(
+    (log) => log.eventName === "ContributionReceived",
+  );
+  const cancellations = campaignLogs.filter((log) => log.eventName === "CampaignCancelled");
+  const finalizations = campaignLogs.filter((log) => log.eventName === "CampaignFinalized");
+  const claims = campaignLogs.filter((log) => log.eventName === "FundsClaimed");
+  const refunds = campaignLogs.filter((log) => log.eventName === "RefundClaimed");
+
+  const transfers = parseEventLogs({
+    abi: [transferEvent],
+    logs: logs.filter((log) => log.address.toLowerCase() === usdcAddress.toLowerCase()),
+    strict: false,
+  });
+  const transfersIn = transfers.filter(
+    (log) => log.args.to?.toLowerCase() === campaign.toLowerCase(),
+  );
+  const transfersOut = transfers.filter(
+    (log) => log.args.from?.toLowerCase() === campaign.toLowerCase(),
+  );
+
+  const memos = parseEventLogs({
+    abi: [memoEvent],
+    logs: logs.filter((log) => log.address.toLowerCase() === memoAddress.toLowerCase()),
+    strict: false,
+  }).filter((log) => log.args.target?.toLowerCase() === campaign.toLowerCase());
+
+  const creations = configuredFactory
+    ? parseEventLogs({
+        abi: [createdEvent],
+        logs: logs.filter(
+          (log) => log.address.toLowerCase() === configuredFactory.toLowerCase(),
+        ),
+        strict: false,
+      }).filter((log) => log.args.campaign?.toLowerCase() === campaign.toLowerCase())
+    : [];
 
   const memoByTx = new Map<Hex, string>();
   for (const log of memos) {
@@ -227,7 +254,7 @@ export function ActivityFeed({ campaign }: { campaign: Address }) {
       if (!client) throw new Error("Arc RPC unavailable");
       return loadActivity(client, campaign);
     },
-    refetchInterval: 10_000,
+    refetchInterval: 60_000,
   });
 
   return (

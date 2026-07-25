@@ -15,7 +15,6 @@ export function useCampaign(address: Address) {
       if (!client) throw new Error("Arc RPC unavailable");
       return loadCampaign(client, address);
     },
-    refetchInterval: 10_000,
+    refetchInterval: 60_000,
   });
 }
-

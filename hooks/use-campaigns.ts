@@ -14,7 +14,6 @@ export function useCampaigns() {
       if (!client || !factoryAddress) throw new Error("Factory not configured");
       return loadCampaigns(client, factoryAddress);
     },
-    refetchInterval: 12_000,
+    refetchInterval: 60_000,
   });
 }
-
