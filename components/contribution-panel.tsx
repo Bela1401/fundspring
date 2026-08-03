@@ -443,6 +443,8 @@ export function ContributionPanel({ campaign }: { campaign: CampaignSummary }) {
   const busy = transaction.phase === "preparing" || transaction.phase === "signing" || transaction.phase === "submitted";
   const checkingEoa = Boolean(address && routeMode !== "standard" && isEoa === undefined);
   const contributionUnavailable = campaign.status !== 0 || deadlinePassed;
+  const contributionUnavailableLabel =
+    campaign.status !== 0 ? "Campaign is closed" : "Campaign deadline passed";
 
   return (
     <div className="panel p-5 md:p-6">
@@ -539,7 +541,11 @@ export function ContributionPanel({ campaign }: { campaign: CampaignSummary }) {
         )}
       </div>
 
-      {!isConnected ? (
+      {contributionUnavailable ? (
+        <button type="button" className="button-primary mt-5 w-full" disabled>
+          {contributionUnavailableLabel}
+        </button>
+      ) : !isConnected ? (
         <button
           type="button"
           className="button-primary mt-5 w-full"
@@ -554,19 +560,16 @@ export function ContributionPanel({ campaign }: { campaign: CampaignSummary }) {
           disabled={
             amount === 0n ||
             busy ||
-            contributionUnavailable ||
             checkingEoa ||
             (routeMode === "memo" && !referenceValid)
           }
           onClick={() => void contribute()}
         >
-          {contributionUnavailable
-            ? "Campaign deadline passed"
-            : checkingEoa
-              ? "Checking wallet compatibility…"
-              : busy
-                ? "Transaction in progress…"
-                : "Contribute USDC"}
+          {checkingEoa
+            ? "Checking wallet compatibility…"
+            : busy
+              ? "Transaction in progress…"
+              : "Contribute USDC"}
         </button>
       )}
       <p className="mt-3 text-center text-xs text-stone-500">Arc fees are paid in USDC. ETH is not required.</p>
