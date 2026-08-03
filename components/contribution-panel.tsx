@@ -59,7 +59,13 @@ function localReference(): string {
   return `FS-${random.toUpperCase()}`;
 }
 
-export function ContributionPanel({ campaign }: { campaign: CampaignSummary }) {
+export function ContributionPanel({
+  campaign,
+  snapshotTime,
+}: {
+  campaign: CampaignSummary;
+  snapshotTime: bigint;
+}) {
   const [amountInput, setAmountInput] = useState("");
   const [mode, setMode] = useState<Mode>("standard");
   const [reference, setReference] = useState(localReference);
@@ -68,7 +74,6 @@ export function ContributionPanel({ campaign }: { campaign: CampaignSummary }) {
   const [feeNote, setFeeNote] = useState("");
   const [transaction, setTransaction] = useState<TransactionState>({ phase: "idle" });
   const submitLocked = useRef(false);
-  const [now, setNow] = useState(() => BigInt(Math.floor(Date.now() / 1_000)));
   const { address, isConnected, chainId } = useAccount();
   const client = usePublicClient({ chainId: ARC_CHAIN_ID });
   const { writeContractAsync } = useWriteContract();
@@ -77,17 +82,9 @@ export function ContributionPanel({ campaign }: { campaign: CampaignSummary }) {
   const parsedAmount = useMemo(() => parsePositiveUsdc(normalizedAmountInput), [normalizedAmountInput]);
   const amount = parsedAmount ?? 0n;
   const amountInvalid = amountInput.trim().length > 0 && parsedAmount === null;
-  const deadlinePassed = now >= campaign.deadline;
+  const deadlinePassed = snapshotTime >= campaign.deadline;
   const normalizedReference = reference.trim();
   const referenceValid = normalizedReference.length > 0 && normalizedReference.length <= 48;
-
-  useEffect(() => {
-    const timer = window.setInterval(
-      () => setNow(BigInt(Math.floor(Date.now() / 1_000))),
-      15_000,
-    );
-    return () => window.clearInterval(timer);
-  }, []);
 
   const reads = useReadContracts({
     query: { enabled: Boolean(address) },
@@ -278,9 +275,9 @@ export function ContributionPanel({ campaign }: { campaign: CampaignSummary }) {
 
   async function approveIfNeeded() {
     if (!needsApproval) return;
-    if (BigInt(Math.floor(Date.now() / 1_000)) >= campaign.deadline) {
-      throw new Error("The campaign deadline passed before approval could be submitted.");
-    }
+    await assertCampaignAccepting(
+      "The campaign deadline passed before approval could be submitted.",
+    );
     setTransaction({ phase: "signing", message: "Approve the campaign to transfer this USDC amount." });
     const hash = await writeContractAsync({
       chainId: ARC_CHAIN_ID,
@@ -291,6 +288,20 @@ export function ContributionPanel({ campaign }: { campaign: CampaignSummary }) {
     });
     await waitFinal(hash, "Approval submitted. Waiting for Arc’s final receipt…");
     await reads.refetch();
+  }
+
+  async function assertCampaignAccepting(message: string) {
+    if (!client) throw new Error("Arc RPC is unavailable.");
+    const latestBlock = await client.getBlock({ blockTag: "latest" });
+    const latestStatus = await client.readContract({
+      address: campaign.address,
+      abi: campaignAbi,
+      functionName: "status",
+      blockNumber: latestBlock.number,
+    });
+    if (latestStatus !== 0 || latestBlock.timestamp >= campaign.deadline) {
+      throw new Error(message);
+    }
   }
 
   async function ensureActionBalance(action: "contribute" | "memo") {
@@ -350,12 +361,7 @@ export function ContributionPanel({ campaign }: { campaign: CampaignSummary }) {
     try {
       let finalState: Extract<TransactionState, { phase: "final" }> | undefined;
       setTransaction({ phase: "preparing", message: "Checking the campaign, Arc fee, and your USDC balance…" });
-      if (
-        campaign.status !== 0 ||
-        BigInt(Math.floor(Date.now() / 1_000)) >= campaign.deadline
-      ) {
-        throw new Error("This campaign is no longer accepting contributions.");
-      }
+      await assertCampaignAccepting("This campaign is no longer accepting contributions.");
       if (tokenBalance < amount) {
         throw new Error("Your USDC balance is lower than the contribution amount.");
       }
@@ -377,6 +383,7 @@ export function ContributionPanel({ campaign }: { campaign: CampaignSummary }) {
       if (routeMode === "batch" && needsApproval) {
         if (!isEoa) throw new Error("Batching is limited to direct EOA wallets. Use the standard flow.");
         await ensureBatchBalance();
+        await assertCampaignAccepting("The campaign closed before the batch could be submitted.");
         setTransaction({ phase: "signing", message: "Review the atomic approve + contribute batch." });
         const hash = await writeContractAsync({
           chainId: ARC_CHAIN_ID,
@@ -396,6 +403,7 @@ export function ContributionPanel({ campaign }: { campaign: CampaignSummary }) {
         await approveIfNeeded();
         if (!memoValues) throw new Error("Memo reference could not be generated.");
         await ensureActionBalance("memo");
+        await assertCampaignAccepting("The campaign closed before the memo could be submitted.");
         setTransaction({ phase: "signing", message: "Review the referenced contribution in your wallet." });
         const hash = await writeContractAsync({
           chainId: ARC_CHAIN_ID,
@@ -410,6 +418,7 @@ export function ContributionPanel({ campaign }: { campaign: CampaignSummary }) {
       } else {
         await approveIfNeeded();
         await ensureActionBalance("contribute");
+        await assertCampaignAccepting("The campaign closed before the contribution could be submitted.");
         setTransaction({ phase: "signing", message: "Review the contribution in your wallet." });
         const hash = await writeContractAsync({
           chainId: ARC_CHAIN_ID,

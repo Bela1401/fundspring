@@ -5,6 +5,5 @@ import nextTypeScript from "eslint-config-next/typescript";
 export default defineConfig([
   ...nextVitals,
   ...nextTypeScript,
-  globalIgnores([".next/**", "out/**", "cache/**", "lib/**", "broadcast/**"]),
+  globalIgnores([".next/**", "out/**", "cache/**", "lib/forge-std/**", "broadcast/**"]),
 ]);
-

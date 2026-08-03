@@ -27,7 +27,9 @@ campaign economics and settlement rules in non-upgradeable contracts:
 - optional overfunding;
 - permissionless finalization after the deadline;
 - no platform fee or administrative custody;
-- independent pull-based refunds with no unbounded payment loop.
+- independent pull-based refunds with no unbounded payment loop;
+- searchable onchain campaign discovery and transparent protocol analytics;
+- browser-local saved campaigns and exportable event evidence.
 
 ## Network status
 
@@ -44,6 +46,7 @@ in its **testnet phase**. FundSpring targets only:
 | USDC ERC-20 interface | `0x3600000000000000000000000000000000000000`, 6 decimals |
 | Memo | `0x5294E9927c3306DcBaDb03fe70b92e01cCede505` |
 | Multicall3From | `0x522fAf9A91c41c443c66765030741e4AaCe147D0` |
+| Read-only Multicall3 | `0xcA11bde05977b3631167028862bE2a173976CA11` |
 
 Native and ERC-20 USDC are two interfaces over the same underlying Arc balance.
 FundSpring uses ERC-20 units for contributions and allowances, and 18-decimal
@@ -64,6 +67,7 @@ flowchart LR
   U -->|"optional direct EOA call"| MULTI["Arc Multicall3From"]
   MULTI -->|"approve + contribute"| USDC
   MULTI --> C1
+  UI -->|"batched state reads"| READMULTI["Common Multicall3"]
   UI -->|"eth_getLogs / receipts"| RPC["Arc RPC"]
   U -->|"optional separate bridge"| APPKIT["Circle App Kit"]
   APPKIT -->|"USDC after bridge completion"| U
@@ -162,6 +166,33 @@ parallel 18-decimal EIP-7708 system event cannot double-count a contribution.
 Set `NEXT_PUBLIC_DEPLOYMENT_BLOCK` for complete history; otherwise the testnet
 client deliberately limits queries to the latest 100,000 blocks.
 
+The feed can be filtered by contribution, memo, USDC transfer, or lifecycle
+events. Users may export the current verified view as CSV with block/log
+identity, transaction hash, memo reference, and an Arc Testnet Explorer link.
+CSV fields are quoted and spreadsheet-formula prefixes are neutralized.
+
+## Discovery, watchlist, and protocol analytics
+
+The Explore page provides shareable URL-based search, lifecycle filters, and
+stable sorting over the factory registry. It distinguishes genuinely live
+campaigns from expired active contracts that are awaiting permissionless
+finalization by comparing the onchain deadline with the timestamp of the same
+final Arc block used for registry/state reads; this is a derived UI phase, not a
+new contract status. Campaign hydration runs in bounded parallel batches after
+the factory's paginated address reads.
+
+The `/analytics` page computes a current protocol snapshot from registered
+`FundingCampaign` state: gross USDC raised, combined targets, lifecycle
+distribution, distinct creators and beneficiaries, finalized success ratio,
+and the top campaigns by gross raised amount. Registry pages, campaign state,
+and lifecycle time are pinned to one final Arc block. It does not invent
+contributor counts, revenue, or future outcomes.
+
+Saved campaigns use versioned browser local storage and synchronize across
+tabs. They are not onchain records and are not sent to a FundSpring backend.
+See [docs/data-and-analytics.md](docs/data-and-analytics.md) for the data model,
+honesty constraints, CSV schema, and scaling path.
+
 ## Repository layout
 
 ```text
@@ -181,7 +212,7 @@ metadata/        Example campaign metadata
 
 Requirements:
 
-- Node.js 20.9 or later;
+- Node.js 24.x;
 - npm 10 or later;
 - Foundry 1.7 or later.
 
@@ -282,6 +313,8 @@ These are shared infrastructure and are **not owned or deployed by FundSpring**:
 - official Arc Testnet USDC ERC-20 interface;
 - Arc Memo contract;
 - Arc Multicall3From contract;
+- common Multicall3 for Viem's read-only campaign state aggregation (this
+  compatibility contract is not Circle-managed);
 - Arc RPC and Arc Testnet Explorer;
 - Circle Faucet for test funds;
 - Circle App Kit and its Viem adapter for the optional, non-atomic testnet USDC
@@ -314,6 +347,9 @@ source for campaign economics. See [SECURITY.md](SECURITY.md) and
 - FundSpring does not operate its own indexer: activity uses Arcscan indexed
   logs with direct RPC fallback, while campaign discovery reads the factory's
   paginated onchain registry.
+- Registry analytics currently hydrate campaign state in the browser with
+  bounded concurrency; a dedicated indexer is the documented next step once
+  registry volume warrants it.
 - `getCampaignsByCreator` returns a simple unbounded creator-specific array; the
   global registry provides pagination.
 - HTTPS metadata availability and accuracy are the creator's responsibility;
@@ -343,6 +379,7 @@ source for campaign economics. See [SECURITY.md](SECURITY.md) and
 - [USDC system events](https://docs.arc.io/arc/references/usdc-system-events)
 - [Deploy on Arc](https://docs.arc.io/arc/tutorials/deploy-on-arc)
 - [Monitor contract events](https://docs.arc.io/arc/tutorials/monitor-contract-events)
+- [Data indexers](https://docs.arc.io/arc/tools/data-indexers)
 - [App Kit supported blockchains](https://docs.arc.io/app-kit/references/supported-blockchains)
 - [Arc Brand Guidelines and Partner Toolkit](https://www.arc.io/brand-guidelines-and-partner-toolkit)
 

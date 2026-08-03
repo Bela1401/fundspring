@@ -46,7 +46,9 @@ code { color: #bef264; font-size: .9em; }
   border-radius: 1.35rem;
   background: linear-gradient(145deg, rgba(255,255,255,.045), rgba(255,255,255,.018));
 }
-.campaign-card:hover { border-color: rgba(190,242,100,.3); transform: translateY(-2px); }
+.campaign-card-shell { transition: transform 160ms ease; }
+.campaign-card-shell:hover { transform: translateY(-2px); }
+.campaign-card:hover, .campaign-card-shell:hover .campaign-card { border-color: rgba(190,242,100,.3); }
 .button-primary, .button-secondary, .button-warning, .wallet-pill {
   align-items: center;
   justify-content: center;
@@ -84,9 +86,19 @@ code { color: #bef264; font-size: .9em; }
 .status-1 { background: rgba(52,211,153,.12); color: #6ee7b7; }
 .status-2 { background: rgba(251,146,60,.12); color: #fdba74; }
 .status-3 { background: rgba(244,63,94,.12); color: #fda4af; }
+.status-awaiting { background: rgba(252,211,77,.12); color: #fde68a; }
 .skeleton { border-radius: 1.35rem; background: linear-gradient(90deg, rgba(255,255,255,.025), rgba(255,255,255,.07), rgba(255,255,255,.025)); background-size: 200% 100%; animation: pulse 1.4s infinite; }
 @keyframes pulse { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+  }
+  .campaign-card-shell:hover { transform: none; }
+}
 @media (max-width: 640px) {
   .shell { width: min(100% - 1.2rem, 1180px); }
 }
-

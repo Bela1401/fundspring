@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { CampaignGrid } from "@/components/campaign-grid";
 
 export const metadata = { title: "Explore campaigns" };
@@ -13,8 +14,22 @@ export default function CampaignsPage() {
           on Arc Testnet. No synthetic activity or fake balances.
         </p>
       </div>
-      <CampaignGrid />
+      <Suspense
+        fallback={
+          <div
+            className="grid gap-5 md:grid-cols-2 lg:grid-cols-3"
+            role="status"
+            aria-live="polite"
+          >
+            <span className="sr-only">Loading campaign discovery.</span>
+            <div className="skeleton h-80" />
+            <div className="skeleton h-80" />
+            <div className="skeleton h-80" />
+          </div>
+        }
+      >
+        <CampaignGrid discovery />
+      </Suspense>
     </section>
   );
 }
-

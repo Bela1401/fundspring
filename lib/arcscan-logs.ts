@@ -21,8 +21,11 @@ interface ArcscanLogResponse {
 interface ArcscanLogQuery {
   address: Address;
   fromBlock: bigint;
+  toBlock: bigint;
   topics?: Partial<Record<0 | 1 | 2 | 3, Hex>>;
 }
+
+const ARCSCAN_LOG_LIMIT = 1_000;
 
 export function addressTopic(address: Address): Hex {
   return `0x${address.slice(2).toLowerCase().padStart(64, "0")}` as Hex;
@@ -42,16 +45,17 @@ export function normalizeArcscanLog(log: ArcscanLog): Log {
   } as Log;
 }
 
-export async function fetchArcscanLogs({
+async function fetchArcscanLogPage({
   address,
   fromBlock,
+  toBlock,
   topics = {},
 }: ArcscanLogQuery): Promise<Log[]> {
   const url = new URL(`${ARC_EXPLORER_URL}/api`);
   url.searchParams.set("module", "logs");
   url.searchParams.set("action", "getLogs");
   url.searchParams.set("fromBlock", fromBlock.toString());
-  url.searchParams.set("toBlock", "latest");
+  url.searchParams.set("toBlock", toBlock.toString());
   url.searchParams.set("address", address);
 
   const topicIndexes = Object.keys(topics)
@@ -90,4 +94,19 @@ export async function fetchArcscanLogs({
     return [];
   }
   throw new Error(`Arcscan logs request failed: ${payload.message}`);
+}
+
+export async function fetchArcscanLogs(query: ArcscanLogQuery): Promise<Log[]> {
+  const logs = await fetchArcscanLogPage(query);
+  if (logs.length < ARCSCAN_LOG_LIMIT) return logs;
+  if (query.fromBlock >= query.toBlock) {
+    throw new Error("Arcscan log limit reached within a single block");
+  }
+
+  const midpoint = query.fromBlock + (query.toBlock - query.fromBlock) / 2n;
+  const [left, right] = await Promise.all([
+    fetchArcscanLogs({ ...query, toBlock: midpoint }),
+    fetchArcscanLogs({ ...query, fromBlock: midpoint + 1n }),
+  ]);
+  return [...left, ...right];
 }

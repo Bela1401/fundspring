@@ -14,8 +14,10 @@ For each deployed project contract, record:
 - verification status and source URL;
 - major user-facing functions.
 
-Keep official USDC, Memo, Multicall3From, RPC, and explorer under
-`externalDependencies`; they are not FundSpring-owned contracts.
+Keep official USDC, Memo, Multicall3From, common read-only Multicall3, RPC, and
+explorer under `externalDependencies`; they are not FundSpring-owned contracts.
+The common Multicall3 is Ethereum ecosystem compatibility infrastructure and
+is not Circle-managed.
 
 Both active project contracts were source-verified through Arc Testnet
 Explorer's Blockscout API on 2026-08-03. Keep the verification links and dates

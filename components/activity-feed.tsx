@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
 import {
   decodeAbiParameters,
   parseAbiItem,
@@ -13,6 +14,7 @@ import {
 } from "viem";
 import { usePublicClient } from "wagmi";
 import { addressTopic, fetchArcscanLogs } from "@/lib/arcscan-logs";
+import { buildActivityCsv, type ActivityRecord } from "@/lib/activity-export";
 import {
   ARC_CHAIN_ID,
   deploymentBlock,
@@ -23,15 +25,24 @@ import {
 } from "@/lib/arc";
 import { formatUsdc, shorten } from "@/lib/format";
 
-interface Activity {
-  id: string;
-  blockNumber: bigint;
-  logIndex: number;
-  txHash: Hex;
-  kind: string;
-  title: string;
-  detail: string;
-  reference?: string;
+type Activity = ActivityRecord;
+
+type ActivityFilter = "all" | "contribution" | "memo" | "usdc" | "lifecycle";
+
+const activityFilterLabels: Record<ActivityFilter, string> = {
+  all: "All events",
+  contribution: "Contributions",
+  memo: "Memo references",
+  usdc: "USDC transfers",
+  lifecycle: "Lifecycle & settlement",
+};
+
+function matchesActivityFilter(activity: Activity, filter: ActivityFilter): boolean {
+  if (filter === "all") return true;
+  if (filter === "lifecycle") {
+    return ["created", "finalized", "cancelled", "claim", "refund"].includes(activity.kind);
+  }
+  return activity.kind === filter;
 }
 
 const contributionEvent = parseAbiItem(
@@ -107,23 +118,30 @@ async function loadRpcLogs(
   return logs;
 }
 
-async function loadArcscanLogs(campaign: Address, fromBlock: bigint): Promise<Log[]> {
+async function loadArcscanLogs(
+  campaign: Address,
+  fromBlock: bigint,
+  toBlock: bigint,
+): Promise<Log[]> {
   const campaignAsTopic = addressTopic(campaign);
   const requests = [
-    fetchArcscanLogs({ address: campaign, fromBlock }),
+    fetchArcscanLogs({ address: campaign, fromBlock, toBlock }),
     fetchArcscanLogs({
       address: usdcAddress,
       fromBlock,
+      toBlock,
       topics: { 0: toEventSelector(transferEvent), 2: campaignAsTopic },
     }),
     fetchArcscanLogs({
       address: usdcAddress,
       fromBlock,
+      toBlock,
       topics: { 0: toEventSelector(transferEvent), 1: campaignAsTopic },
     }),
     fetchArcscanLogs({
       address: memoAddress,
       fromBlock,
+      toBlock,
       topics: { 0: toEventSelector(memoEvent), 2: campaignAsTopic },
     }),
   ];
@@ -132,6 +150,7 @@ async function loadArcscanLogs(campaign: Address, fromBlock: bigint): Promise<Lo
       fetchArcscanLogs({
         address: factoryAddress,
         fromBlock,
+        toBlock,
         topics: { 0: toEventSelector(createdEvent), 1: campaignAsTopic },
       }),
     );
@@ -146,15 +165,15 @@ async function loadArcscanLogs(campaign: Address, fromBlock: bigint): Promise<Lo
 
 async function loadActivity(client: PublicClient, campaign: Address): Promise<Activity[]> {
   const configuredFactory = factoryAddress;
+  const latestBlock = await client.getBlockNumber();
   let fromBlock = deploymentBlock;
   if (fromBlock === 0n) {
-    const latest = await client.getBlockNumber();
-    fromBlock = latest > 100_000n ? latest - 100_000n : 0n;
+    fromBlock = latestBlock > 100_000n ? latestBlock - 100_000n : 0n;
   }
 
   let logs: Log[];
   try {
-    logs = await loadArcscanLogs(campaign, fromBlock);
+    logs = await loadArcscanLogs(campaign, fromBlock, latestBlock);
   } catch {
     logs = await loadRpcLogs(client, campaign, fromBlock);
   }
@@ -227,6 +246,7 @@ async function loadActivity(client: PublicClient, campaign: Address): Promise<Ac
   for (const log of creations) {
     activity.push({
       id: activityId(log.address, log.transactionHash, log.logIndex),
+      emitterAddress: log.address,
       blockNumber: log.blockNumber,
       logIndex: log.logIndex,
       txHash: log.transactionHash,
@@ -238,40 +258,44 @@ async function loadActivity(client: PublicClient, campaign: Address): Promise<Ac
   for (const log of contributions) {
     activity.push({
       id: activityId(log.address, log.transactionHash, log.logIndex),
+      emitterAddress: log.address,
       blockNumber: log.blockNumber,
       logIndex: log.logIndex,
       txHash: log.transactionHash,
       kind: "contribution",
-      title: `${formatUsdc(log.args.amount!)} USDC contributed`,
-      detail: `From ${shorten(log.args.contributor!)} · total ${formatUsdc(log.args.totalRaised!)} USDC`,
+      title: `${formatUsdc(log.args.amount!, 6)} USDC contributed`,
+      detail: `From ${shorten(log.args.contributor!)} · total ${formatUsdc(log.args.totalRaised!, 6)} USDC`,
       reference: memoByTx.get(log.transactionHash),
     });
   }
   for (const log of transfersIn) {
     activity.push({
       id: activityId(log.address, log.transactionHash, log.logIndex),
+      emitterAddress: log.address,
       blockNumber: log.blockNumber,
       logIndex: log.logIndex,
       txHash: log.transactionHash,
       kind: "usdc",
       title: "USDC escrow transfer",
-      detail: `${formatUsdc(log.args.value!)} USDC from ${shorten(log.args.from!)}`,
+      detail: `${formatUsdc(log.args.value!, 6)} USDC from ${shorten(log.args.from!)}`,
     });
   }
   for (const log of transfersOut) {
     activity.push({
       id: activityId(log.address, log.transactionHash, log.logIndex),
+      emitterAddress: log.address,
       blockNumber: log.blockNumber,
       logIndex: log.logIndex,
       txHash: log.transactionHash,
       kind: "usdc",
       title: "USDC released",
-      detail: `${formatUsdc(log.args.value!)} USDC to ${shorten(log.args.to!)}`,
+      detail: `${formatUsdc(log.args.value!, 6)} USDC to ${shorten(log.args.to!)}`,
     });
   }
   for (const log of memos) {
     activity.push({
       id: activityId(log.address, log.transactionHash, log.logIndex),
+      emitterAddress: log.address,
       blockNumber: log.blockNumber,
       logIndex: log.logIndex,
       txHash: log.transactionHash,
@@ -284,17 +308,19 @@ async function loadActivity(client: PublicClient, campaign: Address): Promise<Ac
   for (const log of finalizations) {
     activity.push({
       id: activityId(log.address, log.transactionHash, log.logIndex),
+      emitterAddress: log.address,
       blockNumber: log.blockNumber,
       logIndex: log.logIndex,
       txHash: log.transactionHash,
       kind: "finalized",
       title: log.args.status === 1 ? "Campaign finalized successfully" : "Campaign finalized below goal",
-      detail: `${formatUsdc(log.args.totalRaised!)} of ${formatUsdc(log.args.fundingGoal!)} USDC`,
+      detail: `${formatUsdc(log.args.totalRaised!, 6)} of ${formatUsdc(log.args.fundingGoal!, 6)} USDC`,
     });
   }
   for (const log of cancellations) {
     activity.push({
       id: activityId(log.address, log.transactionHash, log.logIndex),
+      emitterAddress: log.address,
       blockNumber: log.blockNumber,
       logIndex: log.logIndex,
       txHash: log.transactionHash,
@@ -306,23 +332,25 @@ async function loadActivity(client: PublicClient, campaign: Address): Promise<Ac
   for (const log of claims) {
     activity.push({
       id: activityId(log.address, log.transactionHash, log.logIndex),
+      emitterAddress: log.address,
       blockNumber: log.blockNumber,
       logIndex: log.logIndex,
       txHash: log.transactionHash,
       kind: "claim",
       title: "Beneficiary claimed funds",
-      detail: `${formatUsdc(log.args.amount!)} USDC to ${shorten(log.args.beneficiary!)}`,
+      detail: `${formatUsdc(log.args.amount!, 6)} USDC to ${shorten(log.args.beneficiary!)}`,
     });
   }
   for (const log of refunds) {
     activity.push({
       id: activityId(log.address, log.transactionHash, log.logIndex),
+      emitterAddress: log.address,
       blockNumber: log.blockNumber,
       logIndex: log.logIndex,
       txHash: log.transactionHash,
       kind: "refund",
       title: "Contributor refund claimed",
-      detail: `${formatUsdc(log.args.amount!)} USDC to ${shorten(log.args.contributor!)}`,
+      detail: `${formatUsdc(log.args.amount!, 6)} USDC to ${shorten(log.args.contributor!)}`,
     });
   }
 
@@ -337,8 +365,10 @@ async function loadActivity(client: PublicClient, campaign: Address): Promise<Ac
 }
 
 export function ActivityFeed({ campaign }: { campaign: Address }) {
+  const [filter, setFilter] = useState<ActivityFilter>("all");
+  const [exportStatus, setExportStatus] = useState("");
   const client = usePublicClient({ chainId: ARC_CHAIN_ID });
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, isFetching, error, refetch } = useQuery({
     queryKey: ["activity", campaign],
     enabled: Boolean(client),
     queryFn: () => {
@@ -347,51 +377,147 @@ export function ActivityFeed({ campaign }: { campaign: Address }) {
     },
     refetchInterval: 60_000,
   });
+  const visibleActivity = useMemo(
+    () => (data ?? []).filter((item) => matchesActivityFilter(item, filter)),
+    [data, filter],
+  );
+  const transactionCount = useMemo(
+    () => new Set((data ?? []).map((item) => item.txHash)).size,
+    [data],
+  );
+  const contributionCount = (data ?? []).filter(
+    (item) => item.kind === "contribution",
+  ).length;
+  const memoCount = (data ?? []).filter((item) => item.kind === "memo").length;
+
+  function exportActivity() {
+    if (visibleActivity.length === 0) return;
+    const csv = buildActivityCsv(visibleActivity, explorerTx);
+    const objectUrl = URL.createObjectURL(
+      new Blob([csv], { type: "text/csv;charset=utf-8" }),
+    );
+    const link = document.createElement("a");
+    link.href = objectUrl;
+    link.download = `fundspring-${campaign.slice(2, 10)}-activity.csv`;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(objectUrl);
+    setExportStatus(`Exported ${visibleActivity.length} verified event records.`);
+  }
 
   return (
     <section>
-      <div className="mb-5">
-        <p className="eyebrow">Reconciled event log</p>
-        <h2 className="mt-2 text-2xl font-semibold text-white">Onchain activity</h2>
-      </div>
-      {isLoading ? (
-        <div className="skeleton h-48" />
-      ) : error ? (
-        <div className="panel p-5 text-sm text-rose-200">
-          Activity could not be queried from Arcscan or Arc RPC.
+      <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="eyebrow">Reconciled event log</p>
+          <h2 className="mt-2 text-2xl font-semibold text-white">Onchain activity</h2>
         </div>
-      ) : !data?.length ? (
-        <div className="panel p-6 text-sm text-stone-500">No events found in the configured indexing window.</div>
-      ) : (
-        <div className="panel divide-y divide-white/7">
-          {data.map((item) => (
-            <a
-              key={item.id}
-              href={explorerTx(item.txHash)}
-              target="_blank"
-              rel="noreferrer"
-              className="flex gap-4 p-4 hover:bg-white/3"
+        {Boolean(data?.length) && (
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <label className="sr-only" htmlFor={`activity-filter-${campaign}`}>
+              Filter campaign activity
+            </label>
+            <select
+              id={`activity-filter-${campaign}`}
+              className="field min-w-48 py-2 text-xs"
+              value={filter}
+              onChange={(event) => {
+                setFilter(event.target.value as ActivityFilter);
+                setExportStatus("");
+              }}
             >
-              <span className="mt-1 size-2 shrink-0 rounded-full bg-lime-300/80" />
-              <span className="min-w-0">
-                <span className="block text-sm font-semibold text-white">{item.title}</span>
-                <span className="mt-1 block break-words text-xs text-stone-500">{item.detail}</span>
-                {item.reference && (
-                  <span className="mt-2 inline-block max-w-full break-all rounded-md bg-lime-300/8 px-2 py-1 font-mono text-[10px] text-lime-200">
-                    ref {item.reference}
-                  </span>
-                )}
-              </span>
-              <span className="ml-auto shrink-0 text-[10px] text-stone-600">#{item.blockNumber.toString()}</span>
-            </a>
-          ))}
+              {(Object.keys(activityFilterLabels) as ActivityFilter[]).map((value) => (
+                <option key={value} value={value}>{activityFilterLabels[value]}</option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className="button-secondary shrink-0"
+              disabled={visibleActivity.length === 0}
+              onClick={exportActivity}
+            >
+              Export CSV ({visibleActivity.length})
+            </button>
+          </div>
+        )}
+      </div>
+      <p className="sr-only" aria-live="polite">{exportStatus}</p>
+      <p className="sr-only" aria-live="polite">
+        {data?.length
+          ? `Showing ${visibleActivity.length} of ${data.length} campaign events.`
+          : ""}
+      </p>
+      {error && data && (
+        <div className="mb-4 flex flex-col gap-3 rounded-xl border border-amber-300/20 bg-amber-300/[.06] p-4 text-sm text-amber-100 sm:flex-row sm:items-center sm:justify-between" role="status">
+          <p>Showing the last indexed activity because the latest refresh failed.</p>
+          <button type="button" className="button-secondary shrink-0" disabled={isFetching} onClick={() => void refetch()}>
+            {isFetching ? "Retrying…" : "Retry refresh"}
+          </button>
         </div>
       )}
-      <p className="mt-3 text-[11px] text-stone-600">
+      {isLoading ? (
+        <div className="skeleton h-48" role="status" aria-live="polite">
+          <span className="sr-only">Loading campaign activity from Arc.</span>
+        </div>
+      ) : error && !data ? (
+        <div className="panel p-5 text-center text-sm text-rose-200" role="alert">
+          <p>Activity could not be queried from Arcscan or Arc RPC.</p>
+          <button
+            type="button"
+            className="button-secondary mt-4"
+            disabled={isFetching}
+            onClick={() => void refetch()}
+          >
+            {isFetching ? "Retrying…" : "Retry activity"}
+          </button>
+        </div>
+      ) : !data?.length ? (
+        <div className="panel p-6 text-sm text-stone-400">No events found in the configured indexing window.</div>
+      ) : (
+        <>
+          <div className="mb-4 flex flex-wrap gap-2 text-[11px] text-stone-400">
+            <span className="rounded-full border border-white/8 px-3 py-1.5">{data.length} verified events</span>
+            <span className="rounded-full border border-white/8 px-3 py-1.5">{transactionCount} transactions</span>
+            <span className="rounded-full border border-white/8 px-3 py-1.5">{contributionCount} contributions</span>
+            <span className="rounded-full border border-white/8 px-3 py-1.5">{memoCount} Arc memos</span>
+          </div>
+          {visibleActivity.length === 0 ? (
+            <div className="panel p-6 text-sm text-stone-400">
+              No activity matches this event filter.
+            </div>
+          ) : (
+            <div className="panel divide-y divide-white/7">
+              {visibleActivity.map((item) => (
+                <a
+                  key={item.id}
+                  href={explorerTx(item.txHash)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex gap-4 p-4 hover:bg-white/3"
+                >
+                  <span className="mt-1 size-2 shrink-0 rounded-full bg-lime-300/80" />
+                  <span className="min-w-0">
+                    <span className="block text-sm font-semibold text-white">{item.title}</span>
+                    <span className="mt-1 block break-words text-xs text-stone-400">{item.detail}</span>
+                    {item.reference && (
+                      <span className="mt-2 inline-block max-w-full break-all rounded-md bg-lime-300/8 px-2 py-1 font-mono text-[10px] text-lime-200">
+                        ref {item.reference}
+                      </span>
+                    )}
+                  </span>
+                  <span className="ml-auto shrink-0 text-xs text-stone-400">#{item.blockNumber.toString()}</span>
+                </a>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+      <p className="mt-3 text-xs text-stone-400">
         Indexed through Arcscan with direct Arc RPC fallback. Events are reconciled by transaction hash and log index.
       </p>
       {deploymentBlock === 0n && (
-        <p className="mt-3 text-[11px] text-stone-600">
+        <p className="mt-3 text-xs text-stone-400">
           Indexing is limited to the latest 100,000 blocks until NEXT_PUBLIC_DEPLOYMENT_BLOCK is configured.
         </p>
       )}

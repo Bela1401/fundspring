@@ -3,6 +3,7 @@ import { campaignAbi, factoryAbi } from "./contracts";
 import { fetchCampaignMetadata, type CampaignMetadata } from "./metadata";
 
 const REGISTRY_PAGE_SIZE = 100n;
+const CAMPAIGN_READ_CONCURRENCY = 6;
 
 export interface CampaignSummary {
   address: Address;
@@ -22,11 +23,13 @@ export interface CampaignSummary {
 export async function loadCampaignAddresses(
   client: PublicClient,
   factory: Address,
+  blockNumber: bigint,
 ): Promise<Address[]> {
   const count = await client.readContract({
     address: factory,
     abi: factoryAbi,
     functionName: "campaignCount",
+    blockNumber,
   });
   if (count === 0n) return [];
 
@@ -39,6 +42,7 @@ export async function loadCampaignAddresses(
       abi: factoryAbi,
       functionName: "getCampaigns",
       args: [offset, limit],
+      blockNumber,
     });
     addresses.push(...(page as Address[]));
   }
@@ -48,6 +52,7 @@ export async function loadCampaignAddresses(
 export async function loadCampaign(
   client: PublicClient,
   address: Address,
+  blockNumber: bigint,
 ): Promise<CampaignSummary> {
   const [
     title,
@@ -62,6 +67,7 @@ export async function loadCampaign(
     progressBps,
   ] = await client.multicall({
     allowFailure: false,
+    blockNumber,
     contracts: [
       { address, abi: campaignAbi, functionName: "title" },
       { address, abi: campaignAbi, functionName: "metadataURI" },
@@ -95,11 +101,15 @@ export async function loadCampaign(
 export async function loadCampaigns(
   client: PublicClient,
   factory: Address,
+  blockNumber: bigint,
 ): Promise<CampaignSummary[]> {
-  const addresses = await loadCampaignAddresses(client, factory);
+  const addresses = await loadCampaignAddresses(client, factory, blockNumber);
   const campaigns: CampaignSummary[] = [];
-  for (const address of addresses) {
-    campaigns.push(await loadCampaign(client, address));
+  for (let offset = 0; offset < addresses.length; offset += CAMPAIGN_READ_CONCURRENCY) {
+    const batch = addresses.slice(offset, offset + CAMPAIGN_READ_CONCURRENCY);
+    campaigns.push(...(await Promise.all(
+      batch.map((address) => loadCampaign(client, address, blockNumber)),
+    )));
   }
   return campaigns;
 }

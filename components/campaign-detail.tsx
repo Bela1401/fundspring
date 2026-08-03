@@ -13,24 +13,44 @@ import { ContributionPanel } from "./contribution-panel";
 import { ActivityFeed } from "./activity-feed";
 import { CampaignActions } from "./campaign-actions";
 import { FundWalletPanel } from "./fund-wallet-panel";
+import { CampaignWatchButton } from "./campaign-watch-button";
+import { campaignPhaseLabels, getCampaignPhase } from "@/lib/campaign-discovery";
 
 export function CampaignDetail({ address }: { address: Address }) {
-  const { data: campaign, isLoading, error } = useCampaign(address);
-  if (isLoading) return <section className="shell py-16"><div className="skeleton h-[34rem]" /></section>;
-  if (error || !campaign) {
-    return <section className="shell py-16"><div className="panel p-8 text-rose-200">This address could not be read as a FundSpring campaign.</div></section>;
+  const { data: snapshot, isLoading, isFetching, error, refetch } = useCampaign(address);
+  if (isLoading) return <section className="shell py-16" role="status" aria-live="polite"><span className="sr-only">Loading campaign from Arc.</span><div className="skeleton h-[34rem]" /></section>;
+  if (!snapshot) {
+    return <section className="shell py-16"><div className="panel p-8 text-center text-rose-200" role="alert"><p>This address could not be read as a FundSpring campaign.</p><button type="button" className="button-secondary mt-5" disabled={isFetching} onClick={() => void refetch()}>{isFetching ? "Retrying…" : "Retry campaign"}</button></div></section>;
   }
 
+  const campaign = snapshot.campaign;
   const progress = Number(campaign.progressBps) / 100;
+  const hasKnownStatus = campaign.status >= 0 && campaign.status <= 3;
+  const phase = hasKnownStatus
+    ? getCampaignPhase(campaign, snapshot.timestamp)
+    : null;
+  const statusLabel = phase
+    ? campaignPhaseLabels[phase]
+    : (campaignStatuses[campaign.status] ?? "Unknown");
+  const statusClass = phase === "awaiting-finalization" ? "awaiting" : campaign.status;
   return (
     <section className="shell py-12 md:py-18">
+      {error && (
+        <div className="mb-6 flex flex-col gap-3 rounded-xl border border-amber-300/20 bg-amber-300/[.06] p-4 text-sm text-amber-100 sm:flex-row sm:items-center sm:justify-between" role="status">
+          <p>Showing the last completed Arc snapshot because the latest refresh failed.</p>
+          <button type="button" className="button-secondary shrink-0" disabled={isFetching} onClick={() => void refetch()}>
+            {isFetching ? "Retrying…" : "Retry refresh"}
+          </button>
+        </div>
+      )}
       <div className="grid gap-9 lg:grid-cols-[1fr_23rem]">
         <div>
           <div className="flex flex-wrap items-center gap-3">
-            <span className={`status status-${campaign.status}`}>{campaignStatuses[campaign.status] ?? "Unknown"}</span>
-            <a className="text-xs text-stone-500 hover:text-lime-200" href={explorerAddress(campaign.address)} target="_blank" rel="noreferrer">
+            <span className={`status status-${statusClass}`}>{statusLabel}</span>
+            <a className="text-xs text-stone-400 hover:text-lime-200" href={explorerAddress(campaign.address)} target="_blank" rel="noreferrer">
               Contract {shorten(campaign.address)} ↗
             </a>
+            <CampaignWatchButton address={campaign.address} title={campaign.title} />
           </div>
           <h1 className="font-editorial mt-7 max-w-4xl break-words text-5xl leading-[1.02] tracking-tight text-white md:text-7xl">
             {campaign.title}
@@ -54,8 +74,8 @@ export function CampaignDetail({ address }: { address: Address }) {
           <div className="mt-10 panel p-6 md:p-8">
             <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
               <div>
-                <p className="text-4xl font-semibold text-white">{formatUsdc(campaign.totalRaised)} <span className="text-sm text-stone-500">USDC</span></p>
-                <p className="mt-1 text-sm text-stone-500">raised of {formatUsdc(campaign.fundingGoal)} USDC</p>
+                <p className="text-4xl font-semibold text-white">{formatUsdc(campaign.totalRaised)} <span className="text-sm text-stone-400">USDC</span></p>
+                <p className="mt-1 text-sm text-stone-400">raised of {formatUsdc(campaign.fundingGoal)} USDC</p>
               </div>
               <p className="text-2xl font-semibold text-lime-200">{progress.toFixed(1)}%</p>
             </div>
@@ -63,10 +83,10 @@ export function CampaignDetail({ address }: { address: Address }) {
               <div className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-lime-300" style={{ width: `${Math.min(progress, 100)}%` }} />
             </div>
             <div className="mt-7 grid gap-5 text-sm sm:grid-cols-2">
-              <div><p className="text-xs text-stone-600">Deadline</p><p className="mt-1 text-stone-300">{formatDeadline(campaign.deadline)}</p></div>
-              <div><p className="text-xs text-stone-600">Creator</p><a href={explorerAddress(campaign.creator)} target="_blank" rel="noreferrer" className="mt-1 block text-stone-300 hover:text-lime-200">{shorten(campaign.creator)} ↗</a></div>
-              <div><p className="text-xs text-stone-600">Beneficiary</p><a href={explorerAddress(campaign.beneficiary)} target="_blank" rel="noreferrer" className="mt-1 block text-stone-300 hover:text-lime-200">{shorten(campaign.beneficiary)} ↗</a></div>
-              <div><p className="text-xs text-stone-600">Settlement</p><p className="mt-1 text-stone-300">All-or-nothing · overfunding allowed</p></div>
+              <div><p className="text-xs text-stone-400">Deadline</p><p className="mt-1 text-stone-300">{formatDeadline(campaign.deadline)}</p></div>
+              <div><p className="text-xs text-stone-400">Creator</p><a href={explorerAddress(campaign.creator)} target="_blank" rel="noreferrer" className="mt-1 block text-stone-300 hover:text-lime-200">{shorten(campaign.creator)} ↗</a></div>
+              <div><p className="text-xs text-stone-400">Beneficiary</p><a href={explorerAddress(campaign.beneficiary)} target="_blank" rel="noreferrer" className="mt-1 block text-stone-300 hover:text-lime-200">{shorten(campaign.beneficiary)} ↗</a></div>
+              <div><p className="text-xs text-stone-400">Settlement</p><p className="mt-1 text-stone-300">All-or-nothing · overfunding allowed</p></div>
             </div>
           </div>
 
@@ -74,7 +94,7 @@ export function CampaignDetail({ address }: { address: Address }) {
         </div>
         <aside>
           {campaign.status === 0 ? (
-            <ContributionPanel campaign={campaign} />
+            <ContributionPanel campaign={campaign} snapshotTime={snapshot.timestamp} />
           ) : (
             <div className="panel p-6 text-sm leading-6 text-stone-400">
               <p className="eyebrow">Campaign closed</p>
@@ -82,8 +102,8 @@ export function CampaignDetail({ address }: { address: Address }) {
             </div>
           )}
           <FundWalletPanel />
-          <CampaignActions campaign={campaign} />
-          <div className="mt-5 rounded-xl border border-white/7 p-4 text-xs leading-5 text-stone-600">
+          <CampaignActions campaign={campaign} snapshotTime={snapshot.timestamp} />
+          <div className="mt-5 rounded-xl border border-white/7 p-4 text-xs leading-5 text-stone-400">
             Experimental Arc Testnet software. Contracts have not undergone a professional third-party security audit.
           </div>
         </aside>

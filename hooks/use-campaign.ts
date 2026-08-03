@@ -11,10 +11,15 @@ export function useCampaign(address: Address) {
   return useQuery({
     queryKey: ["campaign", address],
     enabled: Boolean(client),
-    queryFn: () => {
+    queryFn: async () => {
       if (!client) throw new Error("Arc RPC unavailable");
-      return loadCampaign(client, address);
+      const block = await client.getBlock({ blockTag: "latest" });
+      return {
+        blockNumber: block.number,
+        timestamp: block.timestamp,
+        campaign: await loadCampaign(client, address, block.number),
+      };
     },
-    refetchInterval: 60_000,
+    refetchInterval: 15_000,
   });
 }

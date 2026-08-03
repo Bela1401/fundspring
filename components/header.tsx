@@ -98,6 +98,7 @@ export function Header() {
 
           <nav className="hidden items-center gap-6 text-sm text-stone-300 md:flex">
             {navLink("/campaigns", "Explore")}
+            {navLink("/analytics", "Analytics")}
             {navLink("/create", "Create")}
             {navLink("/dashboard", "Dashboard")}
           </nav>
@@ -207,6 +208,7 @@ export function Header() {
         {mobileMenuOpen && (
           <nav className="shell grid gap-3 border-t border-white/8 py-4 text-sm text-stone-300 md:hidden">
             {navLink("/campaigns", "Explore campaigns")}
+            {navLink("/analytics", "Protocol analytics")}
             {navLink("/create", "Create campaign")}
             {navLink("/dashboard", "Dashboard")}
           </nav>

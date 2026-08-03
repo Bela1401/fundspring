@@ -19,6 +19,7 @@ export default function HomePage() {
           <div className="mt-9 flex flex-wrap gap-3">
             <Link href="/campaigns" className="button-primary inline-flex">Explore campaigns</Link>
             <Link href="/create" className="button-secondary">Start a campaign</Link>
+            <Link href="/analytics" className="button-secondary">View analytics</Link>
           </div>
         </div>
         <div className="mt-18 grid border-y border-white/8 py-7 text-sm sm:grid-cols-3">
@@ -58,4 +59,3 @@ export default function HomePage() {
     </>
   );
 }
-

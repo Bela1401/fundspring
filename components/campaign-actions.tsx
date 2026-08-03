@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatEther } from "viem";
 import { useAccount, usePublicClient, useReadContracts, useWriteContract } from "wagmi";
@@ -26,10 +26,15 @@ function formatArcFee(fee: bigint): string {
   });
 }
 
-export function CampaignActions({ campaign }: { campaign: CampaignSummary }) {
+export function CampaignActions({
+  campaign,
+  snapshotTime,
+}: {
+  campaign: CampaignSummary;
+  snapshotTime: bigint;
+}) {
   const [transaction, setTransaction] = useState<TransactionState>({ phase: "idle" });
   const actionLocked = useRef(false);
-  const [now, setNow] = useState(() => BigInt(Math.floor(Date.now() / 1_000)));
   const { address, chainId } = useAccount();
   const client = usePublicClient({ chainId: ARC_CHAIN_ID });
   const { writeContractAsync } = useWriteContract();
@@ -59,7 +64,7 @@ export function CampaignActions({ campaign }: { campaign: CampaignSummary }) {
   const canRefund = (reads.data?.[1]?.result as boolean | undefined) ?? false;
   const isCreator = address?.toLowerCase() === campaign.creator.toLowerCase();
   const isBeneficiary = address?.toLowerCase() === campaign.beneficiary.toLowerCase();
-  const canFinalize = campaign.status === 0 && now >= campaign.deadline;
+  const canFinalize = campaign.status === 0 && snapshotTime >= campaign.deadline;
   const canCancel = campaign.status === 0 && isCreator;
   const canClaim = campaign.status === 1 && campaign.amountClaimed === 0n && isBeneficiary;
   const availableActions = useMemo(() => {
@@ -71,14 +76,6 @@ export function CampaignActions({ campaign }: { campaign: CampaignSummary }) {
     return actions;
   }, [canCancel, canClaim, canFinalize, canRefund]);
   const busy = transaction.phase === "preparing" || transaction.phase === "signing" || transaction.phase === "submitted";
-
-  useEffect(() => {
-    const timer = window.setInterval(
-      () => setNow(BigInt(Math.floor(Date.now() / 1_000))),
-      15_000,
-    );
-    return () => window.clearInterval(timer);
-  }, []);
 
   async function estimateActionFee(functionName: LifecycleAction): Promise<bigint> {
     if (!client || !address) throw new Error("Arc RPC is unavailable.");
@@ -124,6 +121,12 @@ export function CampaignActions({ campaign }: { campaign: CampaignSummary }) {
     }
     try {
       setTransaction({ phase: "preparing", message: "Estimating the Arc fee and checking your USDC gas balance…" });
+      if (functionName === "finalizeCampaign") {
+        const latestBlock = await client.getBlock({ blockTag: "latest" });
+        if (latestBlock.timestamp < campaign.deadline) {
+          throw new Error("The campaign deadline has not passed on Arc yet.");
+        }
+      }
       const [estimatedFee, nativeBalance] = await Promise.all([
         estimateActionFee(functionName),
         client.getBalance({ address }),

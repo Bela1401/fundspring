@@ -7,6 +7,7 @@ export function Footer() {
         <p>© 2026 FundSpring. Experimental testnet software.</p>
         <div className="flex flex-wrap gap-5">
           <Link href="/campaigns">Campaigns</Link>
+          <Link href="/analytics">Analytics</Link>
           <Link href="/create">Create</Link>
           <Link href="/dashboard">Dashboard</Link>
           <Link href="/legal">Risk & privacy</Link>

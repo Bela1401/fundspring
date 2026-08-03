@@ -23,7 +23,7 @@ export default function LegalPage() {
           </section>
           <section>
             <h2 className="text-xl font-semibold text-white">Browser data</h2>
-            <p className="mt-2">The application does not maintain a centralized contributor database. Wallet state is handled by the selected wallet connector, and campaign views are derived from public contract state and event logs.</p>
+            <p className="mt-2">The application does not maintain a centralized contributor database. Wallet state is handled by the selected wallet connector, and campaign views are derived from public contract state and event logs. Saved campaign contract addresses are kept under a versioned local-storage key on this browser, synchronize across tabs, and are not sent to a FundSpring backend.</p>
           </section>
         </div>
       </div>

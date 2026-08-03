@@ -10,9 +10,15 @@ export function useCampaigns() {
   return useQuery({
     queryKey: ["campaigns", factoryAddress],
     enabled: Boolean(client && factoryAddress),
-    queryFn: () => {
-      if (!client || !factoryAddress) throw new Error("Factory not configured");
-      return loadCampaigns(client, factoryAddress);
+    queryFn: async () => {
+      const configuredFactory = factoryAddress;
+      if (!client || !configuredFactory) throw new Error("Factory not configured");
+      const block = await client.getBlock({ blockTag: "latest" });
+      return {
+        blockNumber: block.number,
+        timestamp: block.timestamp,
+        campaigns: await loadCampaigns(client, configuredFactory, block.number),
+      };
     },
     refetchInterval: 60_000,
   });
