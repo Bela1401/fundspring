@@ -8,7 +8,8 @@ import { useCampaigns } from "@/hooks/use-campaigns";
 import { ARC_CHAIN_ID, factoryAddress } from "@/lib/arc";
 import { campaignAbi } from "@/lib/contracts";
 import type { CampaignSummary } from "@/lib/campaigns";
-import { formatUsdc } from "@/lib/format";
+import { errorMessage, formatUsdc } from "@/lib/format";
+import { requestWalletConnection } from "@/lib/wallet-events";
 
 interface FundedCampaign {
   campaign: CampaignSummary;
@@ -61,6 +62,37 @@ export function DashboardView() {
       <div className="panel p-10 text-center">
         <h2 className="text-2xl font-semibold text-white">Connect your wallet</h2>
         <p className="mt-2 text-stone-400">Your creator, contributor, refund, and beneficiary views are derived from the connected address.</p>
+        <button
+          type="button"
+          className="button-primary mt-6"
+          onClick={requestWalletConnection}
+        >
+          Connect wallet
+        </button>
+      </div>
+    );
+  }
+  const rpcError = campaigns.error ?? funded.error;
+  if (rpcError) {
+    const retrying = campaigns.isFetching || funded.isFetching;
+    return (
+      <div className="panel p-10 text-center" role="alert">
+        <h2 className="text-2xl font-semibold text-white">Dashboard data could not be loaded</h2>
+        <p className="mt-2 text-sm text-rose-100">Arc RPC error: {errorMessage(rpcError)}</p>
+        <button
+          type="button"
+          className="button-secondary mt-6"
+          disabled={retrying}
+          onClick={() => {
+            if (campaigns.isError) {
+              void campaigns.refetch();
+            } else {
+              void funded.refetch();
+            }
+          }}
+        >
+          {retrying ? "Retrying…" : "Retry dashboard data"}
+        </button>
       </div>
     );
   }
@@ -86,7 +118,7 @@ export function DashboardView() {
         {funded.data?.map(({ campaign, contribution }) => (
           <div key={campaign.address}>
             <CampaignCard campaign={campaign} />
-            <p className="-mt-12 px-6 pb-5 text-xs text-lime-200">Your contribution: {formatUsdc(contribution)} USDC</p>
+            <p className="pointer-events-none -mt-12 px-6 pb-5 text-xs text-lime-200">Your contribution: {formatUsdc(contribution)} USDC</p>
           </div>
         ))}
       </DashboardSection>

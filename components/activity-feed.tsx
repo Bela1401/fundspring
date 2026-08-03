@@ -375,9 +375,9 @@ export function ActivityFeed({ campaign }: { campaign: Address }) {
               <span className="mt-1 size-2 shrink-0 rounded-full bg-lime-300/80" />
               <span className="min-w-0">
                 <span className="block text-sm font-semibold text-white">{item.title}</span>
-                <span className="mt-1 block text-xs text-stone-500">{item.detail}</span>
+                <span className="mt-1 block break-words text-xs text-stone-500">{item.detail}</span>
                 {item.reference && (
-                  <span className="mt-2 inline-block rounded-md bg-lime-300/8 px-2 py-1 font-mono text-[10px] text-lime-200">
+                  <span className="mt-2 inline-block max-w-full break-all rounded-md bg-lime-300/8 px-2 py-1 font-mono text-[10px] text-lime-200">
                     ref {item.reference}
                   </span>
                 )}

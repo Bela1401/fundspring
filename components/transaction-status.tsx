@@ -4,6 +4,7 @@ import { explorerTx } from "@/lib/arc";
 
 export type TransactionState =
   | { phase: "idle" }
+  | { phase: "preparing"; message: string }
   | { phase: "signing"; message: string }
   | { phase: "submitted"; hash: `0x${string}`; message: string }
   | { phase: "final"; hash: `0x${string}`; message: string }
@@ -15,7 +16,7 @@ export function TransactionStatus({ state }: { state: TransactionState }) {
   return (
     <div className={`mt-4 rounded-xl border p-3 text-xs leading-5 ${tone}`} role="status">
       <div className="flex items-center gap-2">
-        {(state.phase === "signing" || state.phase === "submitted") && (
+        {(state.phase === "preparing" || state.phase === "signing" || state.phase === "submitted") && (
           <span className="size-2 animate-pulse rounded-full bg-lime-300" />
         )}
         {state.message}
@@ -27,10 +28,11 @@ export function TransactionStatus({ state }: { state: TransactionState }) {
           target="_blank"
           rel="noreferrer"
         >
-          View finality record on Arc explorer ↗
+          {state.phase === "submitted"
+            ? "Track submitted transaction on Arc explorer ↗"
+            : "View final transaction on Arc explorer ↗"}
         </a>
       )}
     </div>
   );
 }
-

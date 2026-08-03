@@ -32,7 +32,7 @@ export function CampaignDetail({ address }: { address: Address }) {
               Contract {shorten(campaign.address)} ↗
             </a>
           </div>
-          <h1 className="font-editorial mt-7 max-w-4xl text-5xl leading-[1.02] tracking-tight text-white md:text-7xl">
+          <h1 className="font-editorial mt-7 max-w-4xl break-words text-5xl leading-[1.02] tracking-tight text-white md:text-7xl">
             {campaign.title}
           </h1>
           {campaign.metadata?.image && (

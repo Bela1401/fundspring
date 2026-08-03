@@ -14,7 +14,7 @@ export default function ErrorPage({
         <p className="mt-4 text-sm leading-6 text-stone-400">
           Your funds and contract state are unaffected. Retry the Arc RPC request or open the explorer.
         </p>
-        <button className="button-primary mt-6" onClick={reset}>Try again</button>
+        <button type="button" className="button-primary mt-6" onClick={reset}>Try again</button>
       </div>
     </section>
   );

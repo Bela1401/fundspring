@@ -5,7 +5,7 @@ import type { CampaignSummary } from "@/lib/campaigns";
 export function CampaignCard({ campaign }: { campaign: CampaignSummary }) {
   const progress = Number(campaign.progressBps) / 100;
   return (
-    <Link href={`/campaigns/${campaign.address}`} className="campaign-card group">
+    <Link href={`/campaigns/${campaign.address}`} className="campaign-card group block">
       {campaign.metadata?.image && (
         // External campaign media is validated as HTTPS metadata and intentionally remains unoptimized.
         // eslint-disable-next-line @next/next/no-img-element
@@ -24,7 +24,7 @@ export function CampaignCard({ campaign }: { campaign: CampaignSummary }) {
         <span className="text-xs text-stone-500">{shorten(campaign.address)}</span>
       </div>
       <div className={campaign.metadata?.image ? "mt-5" : "mt-8"}>
-        <h3 className="text-2xl font-semibold tracking-tight text-white transition group-hover:text-lime-200">
+        <h3 className="break-words text-2xl font-semibold tracking-tight text-white transition group-hover:text-lime-200">
           {campaign.title}
         </h3>
         <p className="mt-3 line-clamp-2 min-h-12 text-sm leading-6 text-stone-400">
