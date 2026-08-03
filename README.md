@@ -31,14 +31,14 @@ campaign economics and settlement rules in non-upgradeable contracts:
 
 ## Network status
 
-Official Arc documentation reviewed on 2026-07-25 states that Arc is currently
+Official Arc documentation reviewed on 2026-08-03 states that Arc is currently
 in its **testnet phase**. FundSpring targets only:
 
 | Parameter | Verified value |
 | --- | --- |
 | Network | Arc Testnet |
 | Chain ID | `5042002` |
-| RPC | `https://rpc.testnet.arc.network` |
+| Application RPC | `https://rpc.drpc.testnet.arc.io` with official Arc endpoint fallbacks |
 | Explorer | `https://testnet.arcscan.app` |
 | Native gas token | USDC, 18-decimal gas accounting |
 | USDC ERC-20 interface | `0x3600000000000000000000000000000000000000`, 6 decimals |
@@ -143,7 +143,8 @@ Contract wallets and unavailable simulations use the standard fallback.
 
 ## Event reconciliation
 
-The campaign activity feed queries actual logs for:
+The campaign activity feed queries actual logs through Arcscan's indexed logs
+API, with direct Arc RPC as a fallback, for:
 
 - `CampaignCreated`;
 - `ContributionReceived`;
@@ -156,7 +157,7 @@ The campaign activity feed queries actual logs for:
 
 Records use `(emitter address, transaction hash, log index)` as their stable
 deduplication key. Related events are correlated by transaction hash. The
-indexer reads only the ERC-20 USDC emitter for application transfers, so Arc's
+feed reads only the ERC-20 USDC emitter for application transfers, so Arc's
 parallel 18-decimal EIP-7708 system event cannot double-count a contribution.
 Set `NEXT_PUBLIC_DEPLOYMENT_BLOCK` for complete history; otherwise the testnet
 client deliberately limits queries to the latest 100,000 blocks.
@@ -271,9 +272,8 @@ Detailed commands are in [docs/deployment.md](docs/deployment.md).
   `claimRefund`, and read-only campaign state.
 
 Constructor parameters and blocks are recorded in
-[deployments/arc-testnet.json](deployments/arc-testnet.json). Source
-verification is pending because Arc Testnet Explorer's Blockscout API returned
-HTTP 503 on the verification request; no verified-source claim is made.
+[deployments/arc-testnet.json](deployments/arc-testnet.json). Both project
+contracts are source-verified on Arc Testnet Explorer.
 
 ## External Arc and Circle Dependencies
 
@@ -311,8 +311,9 @@ source for campaign economics. See [SECURITY.md](SECURITY.md) and
 
 - Arc is testnet software and may be unstable.
 - No professional audit has been completed.
-- No centralized indexer: the dashboard performs reasonable testnet log/state
-  queries and can become slow with a very large registry.
+- FundSpring does not operate its own indexer: activity uses Arcscan indexed
+  logs with direct RPC fallback, while campaign discovery reads the factory's
+  paginated onchain registry.
 - `getCampaignsByCreator` returns a simple unbounded creator-specific array; the
   global registry provides pagination.
 - HTTPS metadata availability and accuracy are the creator's responsibility;
@@ -321,13 +322,11 @@ source for campaign economics. See [SECURITY.md](SECURITY.md) and
   supports transaction extensions.
 - Exact Memo and Multicall3From behavior cannot be reproduced by local Anvil;
   the recorded Arc Testnet receipts are the validation source.
-- Explorer source verification is pending after a Blockscout API HTTP 503.
 - Official App Kit currently brings low/moderate transitive npm advisories; no
-  high or critical production advisory was reported by the 2026-07-25 audit.
+  high or critical production advisory was reported by the 2026-08-03 audit.
 
 ## Roadmap
 
-- retry Blockscout source verification when the explorer API is available;
 - add a production indexer after event volume justifies it;
 - commission an independent smart-contract audit.
 
@@ -336,7 +335,7 @@ source for campaign economics. See [SECURITY.md](SECURITY.md) and
 - [Arc documentation index](https://docs.arc.io/llms.txt)
 - [Connect to Arc](https://docs.arc.io/arc/references/connect-to-arc)
 - [Contract addresses](https://docs.arc.io/arc/references/contract-addresses)
-- [EVM differences](https://docs.arc.io/build/evm-differences)
+- [EVM differences](https://docs.arc.io/arc/references/evm-differences)
 - [Gas and fees](https://docs.arc.io/arc/references/gas-and-fees)
 - [Deterministic finality](https://docs.arc.io/arc/concepts/deterministic-finality)
 - [Transaction memos](https://docs.arc.io/arc/concepts/transaction-memos)

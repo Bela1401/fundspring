@@ -17,6 +17,6 @@ For each deployed project contract, record:
 Keep official USDC, Memo, Multicall3From, RPC, and explorer under
 `externalDependencies`; they are not FundSpring-owned contracts.
 
-Source verification remains marked `pending` until Arc Testnet Explorer's
-Blockscout API accepts the submitted sources. A failed verification service
-request does not change the onchain deployment status.
+Both active project contracts were source-verified through Arc Testnet
+Explorer's Blockscout API on 2026-08-03. Keep the verification links and dates
+in sync with the deployment record.

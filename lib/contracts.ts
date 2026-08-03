@@ -15,6 +15,16 @@ export const factoryAbi = [
   },
   {
     type: "function",
+    name: "getCampaigns",
+    stateMutability: "view",
+    inputs: [
+      { name: "offset", type: "uint256" },
+      { name: "limit", type: "uint256" },
+    ],
+    outputs: [{ name: "page", type: "address[]" }],
+  },
+  {
+    type: "function",
     name: "getCampaignsByCreator",
     stateMutability: "view",
     inputs: [{ name: "creator", type: "address" }],
@@ -271,4 +281,3 @@ export const multicall3FromAbi = [
     ],
   },
 ] as const;
-

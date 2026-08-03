@@ -1,13 +1,8 @@
-import { parseAbiItem, type Address, type PublicClient } from "viem";
-import { deploymentBlock } from "./arc";
+import { type Address, type PublicClient } from "viem";
 import { campaignAbi, factoryAbi } from "./contracts";
 import { fetchCampaignMetadata, type CampaignMetadata } from "./metadata";
 
-const campaignCreatedEvent = parseAbiItem(
-  "event CampaignCreated(address indexed campaign,address indexed creator,address indexed beneficiary,uint256 fundingGoal,uint64 deadline,string metadataURI)",
-);
-
-const waitForRpcWindow = () => new Promise((resolve) => setTimeout(resolve, 1_200));
+const REGISTRY_PAGE_SIZE = 100n;
 
 export interface CampaignSummary {
   address: Address;
@@ -28,16 +23,6 @@ export async function loadCampaignAddresses(
   client: PublicClient,
   factory: Address,
 ): Promise<Address[]> {
-  if (deploymentBlock > 0n) {
-    const logs = await client.getLogs({
-      address: factory,
-      event: campaignCreatedEvent,
-      fromBlock: deploymentBlock,
-      toBlock: "latest",
-    });
-    return logs.map((log) => log.args.campaign!);
-  }
-
   const count = await client.readContract({
     address: factory,
     abi: factoryAbi,
@@ -45,16 +30,19 @@ export async function loadCampaignAddresses(
   });
   if (count === 0n) return [];
 
-  const result = await client.multicall({
-    allowFailure: false,
-    contracts: Array.from({ length: Number(count) }, (_, index) => ({
+  const addresses: Address[] = [];
+  for (let offset = 0n; offset < count; offset += REGISTRY_PAGE_SIZE) {
+    const remaining = count - offset;
+    const limit = remaining < REGISTRY_PAGE_SIZE ? remaining : REGISTRY_PAGE_SIZE;
+    const page = await client.readContract({
       address: factory,
       abi: factoryAbi,
-      functionName: "campaignAt" as const,
-      args: [BigInt(index)] as const,
-    })),
-  });
-  return result as Address[];
+      functionName: "getCampaigns",
+      args: [offset, limit],
+    });
+    addresses.push(...(page as Address[]));
+  }
+  return addresses;
 }
 
 export async function loadCampaign(
@@ -111,7 +99,6 @@ export async function loadCampaigns(
   const addresses = await loadCampaignAddresses(client, factory);
   const campaigns: CampaignSummary[] = [];
   for (const address of addresses) {
-    await waitForRpcWindow();
     campaigns.push(await loadCampaign(client, address));
   }
   return campaigns;

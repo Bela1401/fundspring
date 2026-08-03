@@ -5,12 +5,14 @@ import {
   decodeAbiParameters,
   parseAbiItem,
   parseEventLogs,
+  toEventSelector,
   type Address,
   type Hex,
   type Log,
   type PublicClient,
 } from "viem";
 import { usePublicClient } from "wagmi";
+import { addressTopic, fetchArcscanLogs } from "@/lib/arcscan-logs";
 import {
   ARC_CHAIN_ID,
   deploymentBlock,
@@ -55,13 +57,11 @@ function activityId(address: Address, txHash: Hex, logIndex: number): string {
   return `${address}-${txHash}-${logIndex}`;
 }
 
-async function loadActivity(client: PublicClient, campaign: Address): Promise<Activity[]> {
-  let fromBlock = deploymentBlock;
-  if (fromBlock === 0n) {
-    const latest = await client.getBlockNumber();
-    fromBlock = latest > 100_000n ? latest - 100_000n : 0n;
-  }
-
+async function loadRpcLogs(
+  client: PublicClient,
+  campaign: Address,
+  fromBlock: bigint,
+): Promise<Log[]> {
   const configuredFactory = factoryAddress;
   const latest = await client.getBlockNumber();
   const logs: Log[] = [];
@@ -105,6 +105,60 @@ async function loadActivity(client: PublicClient, campaign: Address): Promise<Ac
       }));
       await pause();
     }
+  }
+  return logs;
+}
+
+async function loadArcscanLogs(campaign: Address, fromBlock: bigint): Promise<Log[]> {
+  const campaignAsTopic = addressTopic(campaign);
+  const requests = [
+    fetchArcscanLogs({ address: campaign, fromBlock }),
+    fetchArcscanLogs({
+      address: usdcAddress,
+      fromBlock,
+      topics: { 0: toEventSelector(transferEvent), 2: campaignAsTopic },
+    }),
+    fetchArcscanLogs({
+      address: usdcAddress,
+      fromBlock,
+      topics: { 0: toEventSelector(transferEvent), 1: campaignAsTopic },
+    }),
+    fetchArcscanLogs({
+      address: memoAddress,
+      fromBlock,
+      topics: { 0: toEventSelector(memoEvent), 2: campaignAsTopic },
+    }),
+  ];
+  if (factoryAddress) {
+    requests.push(
+      fetchArcscanLogs({
+        address: factoryAddress,
+        fromBlock,
+        topics: { 0: toEventSelector(createdEvent), 1: campaignAsTopic },
+      }),
+    );
+  }
+
+  const logs = (await Promise.all(requests)).flat();
+  if (logs.length === 0) {
+    throw new Error("Arcscan has not indexed this campaign yet");
+  }
+  return logs;
+}
+
+async function loadActivity(client: PublicClient, campaign: Address): Promise<Activity[]> {
+  const configuredFactory = factoryAddress;
+  let fromBlock = deploymentBlock;
+  if (fromBlock === 0n) {
+    const latest = await client.getBlockNumber();
+    fromBlock = latest > 100_000n ? latest - 100_000n : 0n;
+  }
+
+  let logs: Log[];
+  try {
+    logs = await loadArcscanLogs(campaign, fromBlock);
+  } catch {
+    logs = await loadRpcLogs(client, campaign, fromBlock);
   }
 
   const campaignLogs = parseEventLogs({
@@ -305,7 +359,9 @@ export function ActivityFeed({ campaign }: { campaign: Address }) {
       {isLoading ? (
         <div className="skeleton h-48" />
       ) : error ? (
-        <div className="panel p-5 text-sm text-rose-200">Activity could not be queried from Arc RPC.</div>
+        <div className="panel p-5 text-sm text-rose-200">
+          Activity could not be queried from Arcscan or Arc RPC.
+        </div>
       ) : !data?.length ? (
         <div className="panel p-6 text-sm text-stone-500">No events found in the configured indexing window.</div>
       ) : (
@@ -333,6 +389,9 @@ export function ActivityFeed({ campaign }: { campaign: Address }) {
           ))}
         </div>
       )}
+      <p className="mt-3 text-[11px] text-stone-600">
+        Indexed through Arcscan with direct Arc RPC fallback. Events are reconciled by transaction hash and log index.
+      </p>
       {deploymentBlock === 0n && (
         <p className="mt-3 text-[11px] text-stone-600">
           Indexing is limited to the latest 100,000 blocks until NEXT_PUBLIC_DEPLOYMENT_BLOCK is configured.

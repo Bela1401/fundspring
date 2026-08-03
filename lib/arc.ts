@@ -3,7 +3,7 @@ import { arcTestnet } from "viem/chains";
 
 export const ARC_CHAIN_ID = 5_042_002;
 export const ARC_RPC_URL =
-  process.env.NEXT_PUBLIC_ARC_RPC_URL ?? "https://rpc.testnet.arc.network";
+  process.env.NEXT_PUBLIC_ARC_RPC_URL ?? "https://rpc.drpc.testnet.arc.io";
 export const ARC_EXPLORER_URL =
   process.env.NEXT_PUBLIC_ARC_EXPLORER_URL ?? "https://testnet.arcscan.app";
 export const ARC_USDC_ADDRESS =
@@ -63,4 +63,3 @@ export function explorerTx(hash: string): string {
 export function explorerAddress(address: string): string {
   return `${ARC_EXPLORER_URL}/address/${address}`;
 }
-

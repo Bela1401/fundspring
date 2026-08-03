@@ -17,7 +17,8 @@ flowchart TB
   Memo["Arc Memo (external)"]
   Batch["Arc Multicall3From (external)"]
   AppKit["Circle App Kit / CCTP (external)"]
-  RPC["Arc RPC / logs (external)"]
+  INDEXER["Arcscan indexed logs (external)"]
+  RPC["Arc RPC fallback (external)"]
 
   Wallet --> Frontend
   Frontend --> Factory
@@ -29,6 +30,7 @@ flowchart TB
   Wallet --> Batch
   Batch --> USDC
   Batch --> Campaign
+  Frontend --> INDEXER
   Frontend --> RPC
   Wallet --> AppKit
   AppKit --> Wallet
@@ -59,7 +61,9 @@ before the wallet returns to Arc and does not submit a campaign contribution.
 
 ## Event indexing and reconciliation
 
-The browser queries logs from `NEXT_PUBLIC_DEPLOYMENT_BLOCK`. Without it, the
+The browser queries Arcscan's indexed logs from `NEXT_PUBLIC_DEPLOYMENT_BLOCK`
+and falls back to chunked direct Arc RPC queries if Arcscan is unavailable or
+has not indexed the campaign yet. Without a configured deployment block, the
 fallback window is the latest 100,000 blocks. Stable record identity is:
 
 ```text
@@ -68,7 +72,7 @@ emitterAddress + transactionHash + logIndex
 
 `ContributionReceived`, the 6-decimal USDC `Transfer`, and an optional `Memo`
 are correlated by transaction hash. Memo identity also checks `memoId`,
-`target`, `sender`, and `callDataHash`. The indexer does not mix Arc's
+`target`, `sender`, and `callDataHash`. The feed does not mix Arc's
 18-decimal system `Transfer` emitter with the ERC-20 emitter, preventing
 double-counting.
 

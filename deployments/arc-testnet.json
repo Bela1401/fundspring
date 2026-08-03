@@ -14,10 +14,9 @@
         "usdc": "0x3600000000000000000000000000000000000000"
       },
       "verification": {
-        "status": "pending",
-        "reason": "Arc Testnet Explorer Blockscout API returned HTTP 503 again on 2026-07-25 at 16:52 Europe/Kyiv.",
-        "lastAttempt": "2026-07-25T13:52:38Z",
-        "sourceUrl": null
+        "status": "verified",
+        "verifiedAt": "2026-08-03T11:26:15.491556Z",
+        "sourceUrl": "https://testnet.arcscan.app/address/0xA21d0D15C0851E04D560826Fa20EB787B9C30cb8?tab=contract"
       }
     },
     "FundingCampaigns": [
@@ -37,9 +36,9 @@
           "beneficiary": "0xC709918714Fd9b1bF973b250454A1d0a7B9E0c26"
         },
         "verification": {
-          "status": "pending",
-          "reason": "Awaiting Arc Testnet Explorer Blockscout API availability.",
-          "sourceUrl": null
+          "status": "verified",
+          "verifiedAt": "2026-08-03T11:26:43.631342Z",
+          "sourceUrl": "https://testnet.arcscan.app/address/0x2112eFE5f68F7f9d42596324230197890A29f5ab?tab=contract"
         }
       }
     ]
@@ -48,12 +47,14 @@
     "USDC": "0x3600000000000000000000000000000000000000",
     "Memo": "0x5294E9927c3306DcBaDb03fe70b92e01cCede505",
     "Multicall3From": "0x522fAf9A91c41c443c66765030741e4AaCe147D0",
-    "rpc": "https://rpc.testnet.arc.network",
+    "rpc": "https://rpc.testnet.arc.io",
+    "applicationRpc": "https://rpc.drpc.testnet.arc.io",
     "explorer": "https://testnet.arcscan.app"
   },
   "validationTransactions": {
     "batchApproveAndContribute": "0xa65c7b303d7163bc46c512596466d917ef5452d1ad5a2e897f4933c6cd8b2232",
     "memoContribution": "0x3c1fb4025193565836616c97fc73f3dbb334fd5f90b7dc1cd4d4cb1d0087db56",
+    "latestBatchApproveAndContribute": "0x464f4a2dc3686a0155af1286dc6f56ecab9a3cdec70f721587e1c1e58baac357",
     "atomicBatchRevert": "0x1fd4b74687b0e7a7b01283ca9298abbcf3f3697024a026d58117286bbdf2b210"
   },
   "notes": "Active deployment replaced on 2026-07-25 using deployer 0xC709918714Fd9b1bF973b250454A1d0a7B9E0c26. Addresses and hashes were read from final Arc Testnet receipts. External infrastructure is listed separately and is not FundSpring-owned."

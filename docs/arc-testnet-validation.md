@@ -31,6 +31,8 @@ matrix below was executed against Arc Testnet on 2026-07-25:
   `0x350e55d554aca5941c82e752ac88ca96ae65d74fa2b4b8c1fc2a3508ecfba045`
 - Successful atomic approve + contribute:
   `0xa65c7b303d7163bc46c512596466d917ef5452d1ad5a2e897f4933c6cd8b2232`
+- Additional successful atomic approve + contribute on 2026-07-26:
+  `0x464f4a2dc3686a0155af1286dc6f56ecab9a3cdec70f721587e1c1e58baac357`
 - Successful Memo contribution:
   `0x3c1fb4025193565836616c97fc73f3dbb334fd5f90b7dc1cd4d4cb1d0087db56`
 - Expected atomic batch revert:

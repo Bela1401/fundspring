@@ -8,18 +8,18 @@ import { arbitrumSepolia, baseSepolia, mainnet, sepolia } from "viem/chains";
 import { ARC_RPC_URL, arcChain } from "@/lib/arc";
 
 const walletConnectProjectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
-const publicArcTransports =
-  ARC_RPC_URL === "https://rpc.testnet.arc.network"
-    ? [
-        http("https://rpc.drpc.testnet.arc.network"),
-        http("https://rpc.blockdaemon.testnet.arc.network"),
-        http(ARC_RPC_URL),
-      ]
-    : [
-        http(ARC_RPC_URL),
-        http("https://rpc.drpc.testnet.arc.network"),
-        http("https://rpc.blockdaemon.testnet.arc.network"),
-      ];
+const publicArcRpcUrls = Array.from(
+  new Set([
+    ARC_RPC_URL,
+    "https://rpc.drpc.testnet.arc.io",
+    "https://rpc.blockdaemon.testnet.arc.io",
+    "https://rpc.quicknode.testnet.arc.io",
+    "https://rpc.testnet.arc.io",
+  ]),
+);
+const publicArcTransports = publicArcRpcUrls.map((url) =>
+  http(url, { timeout: 10_000 }),
+);
 const connectors = [
   injected({ shimDisconnect: true }),
   coinbaseWallet({ appName: "FundSpring" }),
