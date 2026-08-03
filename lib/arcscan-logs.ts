@@ -69,7 +69,10 @@ export async function fetchArcscanLogs({
   const response = await fetch(url, {
     cache: "no-store",
     headers: { Accept: "application/json" },
-    signal: AbortSignal.timeout(12_000),
+    // Indexed USDC topic queries can take longer than simple address lookups.
+    // Keep this above the wallet transport timeout so a healthy Arcscan query
+    // does not unnecessarily trigger the more expensive direct-RPC fallback.
+    signal: AbortSignal.timeout(25_000),
   });
   if (!response.ok) {
     throw new Error(`Arcscan logs request failed with HTTP ${response.status}`);
